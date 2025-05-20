@@ -25,6 +25,10 @@ const OrderItem = sequelize.define('OrderItem', {
     },
     allowNull: false
   },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
   quantity: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -42,11 +46,7 @@ const OrderItem = sequelize.define('OrderItem', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
-  productName: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
-  productImage: {
+  image: {
     type: DataTypes.STRING
   },
   personalization: {
@@ -57,6 +57,18 @@ const OrderItem = sequelize.define('OrderItem', {
     },
     set(value) {
       this.setDataValue('personalization', JSON.stringify(value));
+    }
+  }
+}, {
+  hooks: {
+    beforeCreate: (item) => {
+      // Auto-calculate total price if not set
+      if (!item.getDataValue('totalPrice')) {
+        const price = parseFloat(item.price || 0);
+        const quantity = parseInt(item.quantity || 0);
+        const discount = parseFloat(item.discount || 0);
+        item.setDataValue('totalPrice', (price * quantity) - discount);
+      }
     }
   }
 });

@@ -107,17 +107,14 @@ const createOrder = async (req, res) => {
     const {
       orderItems,
       shippingAddress,
-      city,
-      district,
-      ward,
-      phone,
       paymentMethod,
-      subtotal,
+      itemsPrice,
       shippingPrice,
       discount,
       total,
-      vat,
-      notes
+      promoCode,
+      requestVAT,
+      vatInfo
     } = req.body;
 
     // Check if order items exist
@@ -132,43 +129,49 @@ const createOrder = async (req, res) => {
     // Create order
     const order = await Order.create({
       userId: req.user.id,
-      shippingAddress,
-      city,
-      district,
-      ward,
-      phone,
+      shippingAddress: JSON.stringify(shippingAddress),
+      city: shippingAddress.city,
+      district: shippingAddress.district,
+      ward: shippingAddress.ward,
+      customerName: shippingAddress.fullName,
+      customerEmail: req.user.email,
+      customerPhone: shippingAddress.phone,
       paymentMethod,
-      subtotal,
-      shippingPrice,
+      subTotal: itemsPrice,
+      shippingCost: shippingPrice,
       discount,
-      total,
-      vat,
-      notes,
-      status: 'pending'
+      totalAmount: total,
+      notes: shippingAddress.notes || '',
+      status: 'pending',
+      vatInvoice: requestVAT || false,
+      vatInvoiceInfo: requestVAT && vatInfo ? JSON.stringify(vatInfo) : null
     }, { transaction });
 
     // Create order items
     const createdOrderItems = await Promise.all(
       orderItems.map(async (item) => {
-        const product = await Product.findByPk(item.productId);
-
-        if (!product) {
-          throw new Error(`Product with id ${item.productId} not found`);
-        }
-
+        const itemPrice = parseFloat(item.price);
+        const itemQty = parseInt(item.qty);
+        const itemTotal = itemPrice * itemQty;
+        
         // Create order item
         const orderItem = await OrderItem.create({
           orderId: order.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: product.onSale ? product.salePrice : product.price,
-          personalization: item.personalization || null
+          productId: item.product,
+          name: item.name,
+          price: itemPrice,
+          quantity: itemQty,
+          totalPrice: itemTotal,
+          image: item.image
         }, { transaction });
 
         // Update product stock
-        product.stock -= item.quantity;
-        product.salesCount += item.quantity;
-        await product.save({ transaction });
+        const product = await Product.findByPk(item.product);
+        if (product) {
+          product.stock -= item.qty;
+          product.salesCount = (product.salesCount || 0) + item.qty;
+          await product.save({ transaction });
+        }
 
         return orderItem;
       })
@@ -179,11 +182,12 @@ const createOrder = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
-      data: {
+      order: {
         id: order.id,
-        userId: order.userId,
+        orderNumber: order.orderNumber,
         status: order.status,
-        total: order.total,
+        total: order.totalAmount,
+        paymentMethod: order.paymentMethod,
         createdAt: order.createdAt
       }
     });
