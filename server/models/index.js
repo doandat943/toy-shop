@@ -67,7 +67,7 @@ const Point = sequelize.define('Point', {
   orderId: {
     type: DataTypes.INTEGER,
     references: {
-      model: 'Orders',
+      model: 'orders',
       key: 'id'
     }
   }
