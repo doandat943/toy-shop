@@ -1,0 +1,135 @@
+/* Global styles */
+body {
+  margin: 0;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+/* Homepage sections */
+.hero-section {
+  background-color: #f0f7ff;
+  border-radius: 10px;
+  padding: 3rem 1rem;
+  margin-bottom: 3rem;
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+}
+
+.testimonial-card {
+  border-radius: 10px;
+  height: 100%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.testimonial-card:hover {
+  transform: translateY(-5px);
+}
+
+.testimonial-quote {
+  font-style: italic;
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+}
+
+.testimonial-quote::before {
+  content: "\201C";
+  font-size: 2rem;
+  position: absolute;
+  left: -5px;
+  top: -10px;
+  color: #ddd;
+}
+
+.category-card {
+  overflow: hidden;
+  transition: transform 0.3s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-card:hover {
+  transform: translateY(-5px);
+}
+
+.category-img {
+  height: 180px;
+  object-fit: cover;
+}
+
+/* Product page */
+.product-thumb {
+  cursor: pointer;
+  border: 1px solid #ddd;
+  padding: 5px;
+  transition: all 0.2s;
+}
+
+.product-thumb:hover {
+  border-color: #007bff;
+}
+
+.product-thumb-col {
+  padding: 5px;
+}
+
+/* Forms */
+.form-control:focus {
+  border-color: #4a9cd8;
+  box-shadow: 0 0 0 0.25rem rgba(74, 156, 216, 0.25);
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: #4a9cd8;
+  border-color: #4a9cd8;
+}
+
+.btn-primary:hover {
+  background-color: #3a8bc8;
+  border-color: #3a8bc8;
+}
+
+.btn-outline-primary {
+  color: #4a9cd8;
+  border-color: #4a9cd8;
+}
+
+.btn-outline-primary:hover {
+  background-color: #4a9cd8;
+  border-color: #4a9cd8;
+}
+
+/* Cart */
+.cart-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 2rem 1rem;
+  }
+  
+  .category-img {
+    height: 140px;
+  }
+}

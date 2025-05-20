@@ -1,0 +1,60 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+*/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+*/coverage
+
+# production
+/build
+*/build
+/dist
+*/dist
+
+
+# logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Uploads and generated content
+/uploads/*
+/client/public/uploads/*
+!/uploads/.gitkeep
+!/client/public/uploads/.gitkeep
+
+# Databases
+*.sqlite
+*.sqlite3
+
+# IDE / editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Cache and temp files
+.eslintcache
+.cache/
+.temp/
+*.tmp

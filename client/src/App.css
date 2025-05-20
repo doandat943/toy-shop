@@ -1,0 +1,104 @@
+/* Main app styles */
+:root {
+  --primary-color: #4a9cd8;
+  --secondary-color: #f89c35;
+  --success-color: #38b987;
+  --danger-color: #e9515b;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  --font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+main {
+  min-height: 80vh;
+}
+
+/* Products */
+.product-card {
+  transition: all 0.3s ease;
+  border: 1px solid #eee;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.product-img {
+  height: 200px;
+  object-fit: contain;
+  padding: 10px;
+}
+
+.product-title {
+  height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: #333;
+}
+
+.product-favorite {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+}
+
+.sale-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: var(--danger-color);
+  color: white;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border-radius: 3px;
+}
+
+/* Rating */
+.rating {
+  display: flex;
+  align-items: center;
+}
+
+.rating span {
+  margin-right: 2px;
+}
+
+.rating-text {
+  margin-left: 6px;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* Cart */
+.cart-page h1 {
+  margin-bottom: 2rem;
+}
+
+/* Form */
+.form-container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .product-title {
+    height: auto;
+  }
+}
