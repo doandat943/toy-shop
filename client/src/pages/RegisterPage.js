@@ -21,13 +21,14 @@ const RegisterPage = () => {
 
   const { loading, error, user } = useSelector((state) => state.user);
 
-  const redirect = location.search ? location.search.split('=')[1] : '/';
+  // Lấy đường dẫn chuyển hướng từ state hoặc mặc định về trang chủ
+  const from = location.state?.from || '/';
 
   useEffect(() => {
     if (user) {
-      navigate(redirect);
+      navigate(from);
     }
-  }, [user, redirect, navigate]);
+  }, [user, from, navigate]);
 
   const submitHandler = (e) => {
     e.preventDefault();
@@ -108,7 +109,7 @@ const RegisterPage = () => {
       <Row className='py-3'>
         <Col>
           Đã có tài khoản?{' '}
-          <Link to={redirect ? `/login?redirect=${redirect}` : '/login'}>
+          <Link to='/login' state={{ from: from }}>
             Đăng nhập
           </Link>
         </Col>

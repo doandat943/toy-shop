@@ -81,6 +81,47 @@ Point.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 Order.hasMany(Point, { foreignKey: 'orderId', as: 'pointTransactions' });
 Point.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
 
+// Thêm hook để debug Sequelize, theo dõi dữ liệu từ DB
+if (process.env.NODE_ENV === 'development') {
+  sequelize.addHook('afterFind', (instances, options) => {
+    console.log('Sequelize afterFind hook called');
+    if (Array.isArray(instances)) {
+      // Đây là mảng kết quả
+      console.log(`Found ${instances.length} records`);
+      // Debug kiểu dữ liệu
+      if (instances.length > 0) {
+        console.log('First record type:', typeof instances[0]);
+        // Kiểm tra nếu sequelize.Model tồn tại trước khi sử dụng
+        try {
+          if (sequelize.Model && typeof sequelize.Model === 'function') {
+            console.log('Is instance of Model:', instances[0] instanceof sequelize.Model);
+          } else {
+            console.log('sequelize.Model is not a constructor or not available');
+          }
+        } catch (error) {
+          console.log('Error checking instance type:', error.message);
+        }
+      }
+    } else if (instances) {
+      // Đây là kết quả đơn
+      console.log('Found 1 record');
+      console.log('Record type:', typeof instances);
+      // Kiểm tra nếu sequelize.Model tồn tại trước khi sử dụng
+      try {
+        if (sequelize.Model && typeof sequelize.Model === 'function') {
+          console.log('Is instance of Model:', instances instanceof sequelize.Model);
+        } else {
+          console.log('sequelize.Model is not a constructor or not available');
+        }
+      } catch (error) {
+        console.log('Error checking instance type:', error.message);
+      }
+    } else {
+      console.log('No records found');
+    }
+  });
+}
+
 // Export all models
 module.exports = {
   User,
@@ -93,5 +134,6 @@ module.exports = {
   BlogCategory,
   PromoCode,
   Wishlist,
-  Point
+  Point,
+  sequelize
 }; 

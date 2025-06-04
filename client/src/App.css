@@ -102,3 +102,108 @@ main {
     height: auto;
   }
 }
+
+/* Admin Layout Styling */
+.admin-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-header {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.admin-sidebar {
+  min-height: calc(100vh - 69px);
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-nav .nav-link {
+  color: #343a40;
+  font-weight: 500;
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.sidebar-nav .nav-link:hover {
+  background-color: #f8f9fa;
+  border-left-color: #6c757d;
+}
+
+.sidebar-nav .nav-link.active {
+  background-color: #e9ecef;
+  border-left-color: #007bff;
+  color: #007bff;
+}
+
+.admin-content {
+  background-color: #f8f9fa;
+  min-height: calc(100vh - 69px);
+}
+
+/* Dashboard cards */
+.dashboard-stat-card {
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease;
+}
+
+.dashboard-stat-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Admin tables */
+.admin-table th {
+  background-color: #f1f2f3;
+  font-weight: 600;
+}
+
+.admin-table tr:hover {
+  background-color: rgba(0,123,255,0.04);
+}
+
+/* Form controls in admin */
+.admin-form .form-control:focus,
+.admin-form .form-select:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.admin-form label {
+  font-weight: 500;
+}
+
+/* Admin action buttons */
+.btn-admin-primary {
+  background-color: #4361ee;
+  border-color: #4361ee;
+}
+
+.btn-admin-primary:hover {
+  background-color: #3a56d4;
+  border-color: #3a56d4;
+}
+
+/* Responsive admin layout */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    position: fixed;
+    top: 69px;
+    left: -100%;
+    width: 250px;
+    z-index: 999;
+    transition: left 0.3s ease;
+  }
+  
+  .admin-sidebar.show {
+    left: 0;
+  }
+  
+  .admin-content {
+    margin-left: 0;
+    width: 100%;
+  }
+}

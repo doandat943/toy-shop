@@ -54,7 +54,7 @@ export const fetchCustomerStats = createAsyncThunk(
   'dashboard/fetchCustomerStats',
   async ({ period = 'month' }, { rejectWithValue }) => {
     try {
-      const { data } = await axios.get(`/api/dashboard/customer-stats?period=${period}`);
+      const { data } = await axios.get(`/api/dashboard/customers?period=${period}`);
       return data.data;
     } catch (error) {
       return rejectWithValue(
@@ -70,7 +70,7 @@ export const fetchInventoryStats = createAsyncThunk(
   'dashboard/fetchInventoryStats',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axios.get(`/api/dashboard/inventory-stats`);
+      const { data } = await axios.get(`/api/dashboard/inventory`);
       return data.data;
     } catch (error) {
       return rejectWithValue(

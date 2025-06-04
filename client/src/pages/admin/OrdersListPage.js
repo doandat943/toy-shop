@@ -28,7 +28,7 @@ const OrdersListPage = () => {
 
   // Get orders state from Redux
   const { 
-    orders, 
+    orders = [], // Provide default empty array
     loading, 
     error, 
     pages,
@@ -59,6 +59,7 @@ const OrdersListPage = () => {
   };
 
   const handleStatusChange = (orderId, status) => {
+    if (!orders || !orders.length) return;
     setSelectedOrder(orders.find(order => order.id === orderId));
     setNewStatus(status);
     setShowStatusModal(true);
@@ -167,6 +168,8 @@ const OrdersListPage = () => {
         <Loader />
       ) : error ? (
         <Message variant="danger">{error}</Message>
+      ) : !orders || orders.length === 0 ? (
+        <Message variant="info">Không tìm thấy đơn hàng nào</Message>
       ) : (
         <>
           <Table striped bordered hover responsive>
@@ -182,7 +185,7 @@ const OrdersListPage = () => {
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
+              {Array.isArray(orders) && orders.map((order) => (
                 <React.Fragment key={order.id}>
                   <tr>
                     <td>

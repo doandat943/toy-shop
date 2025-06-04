@@ -1,9 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { login as loginService, register as registerService } from '../mocks/mockService';
 
 // Get user from local storage
-const userFromStorage = localStorage.getItem('user')
+const userFromStorage = localStorage.getItem('user') && localStorage.getItem('user') !== 'undefined'
   ? JSON.parse(localStorage.getItem('user'))
   : null;
 
@@ -12,11 +11,38 @@ export const login = createAsyncThunk(
   'user/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const data = await loginService(email, password);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      return data.user;
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+      
+      console.log('Sending login request...');
+      const { data } = await axios.post('/api/auth/login', { email, password }, config);
+      console.log('Login response:', data);
+      
+      // Đảm bảo response chứa token và user
+      if (!data.token) {
+        return rejectWithValue('Token không hợp lệ từ API');
+      }
+      
+      // Tạo object user với cấu trúc phù hợp
+      const userData = { 
+        ...data.data.user,
+        token: data.token 
+      };
+      
+      console.log('User data to save:', userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      return userData;
     } catch (error) {
-      return rejectWithValue(error.message);
+      console.error('Login error:', error.response || error);
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
     }
   }
 );
@@ -26,11 +52,21 @@ export const register = createAsyncThunk(
   'user/register',
   async ({ name, email, password, phone }, { rejectWithValue }) => {
     try {
-      const data = await registerService({ name, email, password, phone });
-      localStorage.setItem('user', JSON.stringify(data.user));
-      return data.user;
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+      const { data } = await axios.post('/api/auth/register', { name, email, password, phone }, config);
+      const userData = { ...data.data.user, token: data.token };
+      localStorage.setItem('user', JSON.stringify(userData));
+      return userData;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
     }
   }
 );
@@ -48,16 +84,53 @@ export const getUserProfile = createAsyncThunk(
     try {
       const { user } = getState().user;
 
+      if (!user || !user.token) {
+        console.error('No user token available for getUserProfile:', user);
+        return rejectWithValue('Không có token xác thực. Vui lòng đăng nhập lại.');
+      }
+      
+      console.log('Getting profile with token:', user.token);
+
       const config = {
         headers: {
-          Authorization: `Bearer ${user.token}`,
+          'Authorization': `Bearer ${user.token}`,
+          'x-auth-token': user.token
         },
       };
 
-      const { data } = await axios.get('/api/auth/me', config);
+      // Sử dụng URL tuyệt đối
+      const { data } = await axios.get('http://localhost:5000/api/auth/me', config);
+      
+      console.log('getUserProfile response:', data);
 
-      return data.user;
+      if (data && data.data && data.data.user) {
+        // Đảm bảo có thông tin role
+        if (!data.data.user.role && user.role) {
+          console.log('Role not in response, using existing role:', user.role);
+          data.data.user.role = user.role; 
+        }
+        
+        // Kết hợp thông tin user từ server với token hiện có
+        const profileData = {
+          ...data.data.user,
+          token: user.token,
+          // Đảm bảo có role, mặc định là 'customer'
+          role: data.data.user.role || user.role || 'customer'
+        };
+        
+        console.log('Processed profile data with role:', profileData.role);
+        return profileData;
+      } else {
+        console.error('Invalid response format:', data);
+        return rejectWithValue('Định dạng phản hồi không hợp lệ');
+      }
     } catch (error) {
+      console.error('getUserProfile error:', error.response || error);
+      // Kiểm tra lỗi 401 và trả về thông báo cụ thể
+      if (error.response && error.response.status === 401) {
+        return rejectWithValue('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+      }
+      
       return rejectWithValue(
         error.response && error.response.data.message
           ? error.response.data.message
@@ -74,19 +147,120 @@ export const updateUserProfile = createAsyncThunk(
     try {
       const { user } = getState().user;
 
+      if (!user || !user.token) {
+        console.error('No user token available:', user);
+        return rejectWithValue('Không có token xác thực. Vui lòng đăng nhập lại.');
+      }
+      
+      console.log('Updating profile with token:', user.token);
+      console.log('Profile data being sent:', userData);
+
       const config = {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${user.token}`,
+          'Authorization': `Bearer ${user.token}`,
+          'x-auth-token': user.token
         },
       };
 
-      const { data } = await axios.put('/api/users/profile', userData, config);
+      // Sử dụng URL tuyệt đối
+      const { data } = await axios.put('http://localhost:5000/api/users/profile', userData, config);
+      
+      console.log('Profile update response:', data);
 
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      return data.user;
+      if (data && data.data) {
+        // Lưu vào localStorage với token
+        const updatedUserData = { ...data.data, token: user.token };
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+        return updatedUserData;
+      } else {
+        return rejectWithValue('Định dạng phản hồi không hợp lệ');
+      }
     } catch (error) {
+      console.error('Profile update error:', error.response || error);
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
+    }
+  }
+);
+
+// Get all users (admin)
+export const getUsers = createAsyncThunk(
+  'user/getUsers',
+  async (params = {}, { getState, rejectWithValue }) => {
+    try {
+      const { user } = getState().user;
+
+      if (!user || !user.token) {
+        return rejectWithValue('Không có token xác thực. Vui lòng đăng nhập lại.');
+      }
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'x-auth-token': user.token
+        },
+        params: {
+          page: params.page || 1,
+          limit: params.limit || 20,
+          keyword: params.keyword || '',
+          role: params.role || '',
+          status: params.status || ''
+        }
+      };
+
+      const { data } = await axios.get('http://localhost:5000/api/users', config);
+      
+      return {
+        users: data.data || [],
+        page: data.page || 1,
+        pages: data.pages || 1,
+        total: data.count || 0
+      };
+    } catch (error) {
+      console.error('Error in getUsers:', error.response || error);
+      
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
+    }
+  }
+);
+
+// Update user status (admin)
+export const updateUserStatus = createAsyncThunk(
+  'user/updateUserStatus',
+  async ({ id, isActive }, { getState, rejectWithValue }) => {
+    try {
+      const { user } = getState().user;
+
+      if (!user || !user.token) {
+        return rejectWithValue('Không có token xác thực. Vui lòng đăng nhập lại.');
+      }
+
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`,
+          'x-auth-token': user.token
+        }
+      };
+
+      const { data } = await axios.put(
+        `http://localhost:5000/api/users/${id}/status`,
+        { isActive },
+        config
+      );
+
+      return data.data;
+    } catch (error) {
+      console.error('Error in updateUserStatus:', error.response || error);
+      
       return rejectWithValue(
         error.response && error.response.data.message
           ? error.response.data.message
@@ -185,12 +359,17 @@ export const forgotPassword = createAsyncThunk(
 
 const initialState = {
   user: userFromStorage,
+  users: [],
   loading: false,
   error: null,
   success: false,
   profileLoading: false,
   profileError: null,
   message: null,
+  updateSuccess: false,
+  page: 1,
+  pages: 1,
+  total: 0
 };
 
 export const userSlice = createSlice({
@@ -202,6 +381,7 @@ export const userSlice = createSlice({
       state.success = false;
       state.profileError = null;
       state.message = null;
+      state.updateSuccess = false;
     },
   },
   extraReducers: (builder) => {
@@ -249,6 +429,7 @@ export const userSlice = createSlice({
         state.user = {
           ...state.user,
           ...action.payload,
+          token: state.user.token
         };
       })
       .addCase(getUserProfile.rejected, (state, action) => {
@@ -270,6 +451,46 @@ export const userSlice = createSlice({
       .addCase(updateUserProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+
+      // Get all users (admin)
+      .addCase(getUsers.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUsers.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = action.payload.users;
+        state.page = action.payload.page;
+        state.pages = action.payload.pages;
+        state.total = action.payload.total;
+      })
+      .addCase(getUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Update user status (admin)
+      .addCase(updateUserStatus.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.updateSuccess = false;
+      })
+      .addCase(updateUserStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        state.updateSuccess = true;
+        
+        // Cập nhật user trong danh sách
+        if (action.payload && action.payload.id) {
+          state.users = state.users.map(user => 
+            user.id === action.payload.id ? action.payload : user
+          );
+        }
+      })
+      .addCase(updateUserStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.updateSuccess = false;
       })
 
       // Change password

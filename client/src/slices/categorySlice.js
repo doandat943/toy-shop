@@ -1,16 +1,19 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { getCategories } from '../mocks/mockService';
 
 // Fetch all categories
 export const fetchCategories = createAsyncThunk(
   'category/fetchCategories',
   async (_, { rejectWithValue }) => {
     try {
-      const data = await getCategories();
+      const { data } = await axios.get('/api/categories');
       return data.categories;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
     }
   }
 );

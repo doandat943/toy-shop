@@ -2,9 +2,10 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Navbar, Nav, Container, NavDropdown, Badge } from 'react-bootstrap';
-import { FaShoppingCart, FaUser, FaHeart } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaHeart, FaCogs } from 'react-icons/fa';
 import { logout } from '../../slices/userSlice';
 import SearchBox from '../SearchBox';
+import { Link } from 'react-router-dom';
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -83,9 +84,9 @@ const Header = () => {
 
               {user && user.role === 'admin' && (
                 <NavDropdown title="Admin" id="adminmenu">
-                  <LinkContainer to="/admin/dashboard">
-                    <NavDropdown.Item>Tổng quan</NavDropdown.Item>
-                  </LinkContainer>
+                  <NavDropdown.Item as={Link} to="/admin/dashboard">
+                    <FaCogs className="me-2" /> Quản trị hệ thống
+                  </NavDropdown.Item>
                   <LinkContainer to="/admin/products">
                     <NavDropdown.Item>Sản phẩm</NavDropdown.Item>
                   </LinkContainer>

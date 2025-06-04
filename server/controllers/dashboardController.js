@@ -1,5 +1,6 @@
 const { Order, Product, User, Review, Category, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const { Sequelize } = require('sequelize');
 
 // Helper to get date range
 const getDateRange = (period) => {
@@ -41,17 +42,17 @@ const getSummaryStats = async (req, res) => {
     const { startDate, endDate } = getDateRange(period);
 
     // Get total sales
-    const totalSales = await Order.sum('total', {
+    const totalSales = await Order.sum('total_amount', {
       where: {
         status: { [Op.ne]: 'cancelled' },
-        createdAt: { [Op.between]: [startDate, endDate] }
+        created_at: { [Op.between]: [startDate, endDate] }
       }
     }) || 0;
 
     // Get total orders
     const totalOrders = await Order.count({
       where: {
-        createdAt: { [Op.between]: [startDate, endDate] }
+        created_at: { [Op.between]: [startDate, endDate] }
       }
     });
 
@@ -59,7 +60,7 @@ const getSummaryStats = async (req, res) => {
     const newCustomers = await User.count({
       where: {
         role: 'customer',
-        createdAt: { [Op.between]: [startDate, endDate] }
+        created_at: { [Op.between]: [startDate, endDate] }
       }
     });
 
@@ -80,7 +81,7 @@ const getSummaryStats = async (req, res) => {
     // Get total reviews
     const totalReviews = await Review.count({
       where: {
-        createdAt: { [Op.between]: [startDate, endDate] }
+        created_at: { [Op.between]: [startDate, endDate] }
       }
     });
 
@@ -91,10 +92,10 @@ const getSummaryStats = async (req, res) => {
     previousPeriodStart.setTime(previousPeriodStart.getTime() - timeDiff);
     previousPeriodEnd.setTime(previousPeriodEnd.getTime() - timeDiff);
 
-    const previousPeriodSales = await Order.sum('total', {
+    const previousPeriodSales = await Order.sum('total_amount', {
       where: {
         status: { [Op.ne]: 'cancelled' },
-        createdAt: { [Op.between]: [previousPeriodStart, previousPeriodEnd] }
+        created_at: { [Op.between]: [previousPeriodStart, previousPeriodEnd] }
       }
     }) || 0;
 
@@ -117,6 +118,7 @@ const getSummaryStats = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Error in getSummaryStats:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -139,23 +141,23 @@ const getSalesReport = async (req, res) => {
     // Determine grouping format
     switch (groupBy) {
       case 'hour':
-        timeGroup = sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m-%d %H:00');
+        timeGroup = Sequelize.fn('DATE_FORMAT', Sequelize.col('created_at'), '%Y-%m-%d %H:00');
         dateFormat = 'YYYY-MM-DD HH:00';
         break;
       case 'day':
-        timeGroup = sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m-%d');
+        timeGroup = Sequelize.fn('DATE_FORMAT', Sequelize.col('created_at'), '%Y-%m-%d');
         dateFormat = 'YYYY-MM-DD';
         break;
       case 'week':
-        timeGroup = sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%u');
+        timeGroup = Sequelize.fn('DATE_FORMAT', Sequelize.col('created_at'), '%Y-%u');
         dateFormat = 'YYYY-[Week]WW';
         break;
       case 'month':
-        timeGroup = sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m');
+        timeGroup = Sequelize.fn('DATE_FORMAT', Sequelize.col('created_at'), '%Y-%m');
         dateFormat = 'YYYY-MM';
         break;
       default:
-        timeGroup = sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m-%d');
+        timeGroup = Sequelize.fn('DATE_FORMAT', Sequelize.col('created_at'), '%Y-%m-%d');
         dateFormat = 'YYYY-MM-DD';
     }
 
@@ -163,12 +165,12 @@ const getSalesReport = async (req, res) => {
     const salesData = await Order.findAll({
       attributes: [
         [timeGroup, 'date'],
-        [sequelize.fn('SUM', sequelize.col('total')), 'sales'],
-        [sequelize.fn('COUNT', sequelize.col('id')), 'orders']
+        [Sequelize.fn('SUM', Sequelize.col('total_amount')), 'sales'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'orders']
       ],
       where: {
         status: { [Op.ne]: 'cancelled' },
-        createdAt: { [Op.between]: [startDate, endDate] }
+        created_at: { [Op.between]: [startDate, endDate] }
       },
       group: ['date'],
       order: [['date', 'ASC']]
@@ -177,25 +179,25 @@ const getSalesReport = async (req, res) => {
     // Get payment method breakdown
     const paymentMethods = await Order.findAll({
       attributes: [
-        'paymentMethod',
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
-        [sequelize.fn('SUM', sequelize.col('total')), 'total']
+        'payment_method',
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'count'],
+        [Sequelize.fn('SUM', Sequelize.col('total_amount')), 'total']
       ],
       where: {
         status: { [Op.ne]: 'cancelled' },
-        createdAt: { [Op.between]: [startDate, endDate] }
+        created_at: { [Op.between]: [startDate, endDate] }
       },
-      group: ['paymentMethod']
+      group: ['payment_method']
     });
 
     // Get order status breakdown
     const orderStatus = await Order.findAll({
       attributes: [
         'status',
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
       ],
       where: {
-        createdAt: { [Op.between]: [startDate, endDate] }
+        created_at: { [Op.between]: [startDate, endDate] }
       },
       group: ['status']
     });
@@ -274,9 +276,9 @@ const getTopProducts = async (req, res) => {
         'salesCount',
         'rating',
         'numReviews',
-        'createdAt'
+        'created_at'
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit: parseInt(limit)
     });
 
@@ -331,7 +333,7 @@ const getCustomerStats = async (req, res) => {
     const newCustomers = await User.count({
       where: {
         role: 'customer',
-        createdAt: { [Op.between]: [startDate, endDate] }
+        created_at: { [Op.between]: [startDate, endDate] }
       }
     });
 
@@ -342,46 +344,38 @@ const getCustomerStats = async (req, res) => {
       }
     });
 
-    // Get top customers by order value
-    const topCustomers = await User.findAll({
-      attributes: [
-        'id',
-        'name',
-        'email',
-        'phone',
-        [sequelize.fn('COUNT', sequelize.col('Orders.id')), 'orderCount'],
-        [sequelize.fn('SUM', sequelize.col('Orders.total')), 'totalSpent']
-      ],
-      include: [
-        {
-          model: Order,
-          as: 'Orders',
-          attributes: [],
-          where: {
-            status: { [Op.ne]: 'cancelled' }
-          }
-        }
-      ],
-      where: {
-        role: 'customer'
-      },
-      group: ['User.id'],
-      order: [[sequelize.literal('totalSpent'), 'DESC']],
-      limit: 10
+    // Get top customers by order value using raw query
+    const topCustomers = await sequelize.query(`
+      SELECT 
+        u.id,
+        u.name,
+        u.email, 
+        u.phone,
+        COUNT(o.id) as orderCount,
+        SUM(o.total_amount) as totalSpent
+      FROM users u
+      LEFT JOIN orders o ON u.id = o.user_id AND o.status != 'cancelled'
+      WHERE u.role = 'customer'
+      GROUP BY u.id, u.name, u.email, u.phone
+      ORDER BY totalSpent DESC
+      LIMIT 10
+    `, {
+      type: Sequelize.QueryTypes.SELECT
     });
 
     // Get customer registration trends
-    const registrationTrends = await User.findAll({
-      attributes: [
-        [sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m'), 'month'],
-        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
-      ],
-      where: {
-        role: 'customer',
-        createdAt: { [Op.gte]: new Date(new Date().setFullYear(new Date().getFullYear() - 1)) }
-      },
-      group: ['month'],
-      order: [['month', 'ASC']]
+    const registrationTrends = await sequelize.query(`
+      SELECT 
+        DATE_FORMAT(created_at, '%Y-%m') as month,
+        COUNT(id) as count
+      FROM users
+      WHERE 
+        role = 'customer' AND
+        created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)
+      GROUP BY month
+      ORDER BY month ASC
+    `, {
+      type: Sequelize.QueryTypes.SELECT
     });
 
     res.json({
@@ -395,6 +389,7 @@ const getCustomerStats = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Error in getCustomerStats:", error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -408,53 +403,65 @@ const getCustomerStats = async (req, res) => {
 // @access  Private/Admin
 const getInventoryStats = async (req, res) => {
   try {
-    // Get overall inventory stats
-    const totalProducts = await Product.count();
-    const outOfStock = await Product.count({ where: { stock: 0 } });
-    const lowStock = await Product.count({ where: { stock: { [Op.gt]: 0, [Op.lt]: 10 } } });
+    // Get overall inventory stats using raw queries
+    const [totalProductsResult] = await sequelize.query(
+      `SELECT COUNT(*) AS total FROM products`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    const totalProducts = totalProductsResult.total;
+    
+    const [outOfStockResult] = await sequelize.query(
+      `SELECT COUNT(*) AS total FROM products WHERE stock = 0`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    const outOfStock = outOfStockResult.total;
+    
+    const [lowStockResult] = await sequelize.query(
+      `SELECT COUNT(*) AS total FROM products WHERE stock > 0 AND stock < 10`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+    const lowStock = lowStockResult.total;
+    
     const inStock = totalProducts - outOfStock;
     
     // Get inventory value
-    const inventoryValue = await Product.sum(
-      sequelize.literal('price * stock')
+    const [inventoryValueResult] = await sequelize.query(
+      `SELECT SUM(price * stock) AS value FROM products`,
+      { type: Sequelize.QueryTypes.SELECT }
     );
+    const inventoryValue = inventoryValueResult.value || 0;
 
     // Get inventory by category
-    const inventoryByCategory = await Category.findAll({
-      attributes: [
-        'id',
-        'name',
-        [sequelize.fn('COUNT', sequelize.col('Products.id')), 'productCount'],
-        [sequelize.fn('SUM', sequelize.col('Products.stock')), 'totalStock'],
-        [sequelize.literal('SUM(Products.price * Products.stock)'), 'value']
-      ],
-      include: [
-        {
-          model: Product,
-          as: 'products',
-          attributes: []
-        }
-      ],
-      group: ['Category.id'],
-      order: [[sequelize.literal('productCount'), 'DESC']]
+    const inventoryByCategory = await sequelize.query(`
+      SELECT 
+        c.id, 
+        c.name, 
+        COUNT(p.id) as productCount, 
+        SUM(p.stock) as totalStock,
+        SUM(p.price * p.stock) as value
+      FROM categories c
+      LEFT JOIN products p ON p.category_id = c.id
+      GROUP BY c.id, c.name
+      ORDER BY productCount DESC
+    `, {
+      type: Sequelize.QueryTypes.SELECT
     });
 
     // Get products that need reordering
-    const reorderNeeded = await Product.findAll({
-      attributes: [
-        'id',
-        'name',
-        'thumbnail',
-        'stock',
-        'price',
-        'salesCount'
-      ],
-      where: {
-        stock: { [Op.lt]: 10 },
-        isActive: true
-      },
-      order: [['stock', 'ASC']],
-      limit: 20
+    const reorderNeeded = await sequelize.query(`
+      SELECT
+        id,
+        name,
+        thumbnail,
+        stock,
+        price,
+        sales_count as salesCount
+      FROM products
+      WHERE stock < 10 AND is_active = true
+      ORDER BY stock ASC
+      LIMIT 20
+    `, {
+      type: Sequelize.QueryTypes.SELECT
     });
 
     res.json({
@@ -472,6 +479,7 @@ const getInventoryStats = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error("Error in getInventoryStats:", error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -495,7 +503,7 @@ const getRecentOrders = async (req, res) => {
           attributes: ['id', 'name', 'email']
         }
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit: parseInt(limit)
     });
 
@@ -532,7 +540,7 @@ const getRecentReviews = async (req, res) => {
           attributes: ['id', 'name', 'thumbnail']
         }
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
       limit: parseInt(limit)
     });
 

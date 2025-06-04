@@ -1,29 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Form, Button, Row, Col } from 'react-bootstrap';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Form, Button, Row, Col, Alert } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
-import { login } from '../slices/userSlice';
+import { login, resetUserState } from '../slices/userSlice';
 import FormContainer from '../components/FormContainer';
-import Message from '../components/Message';
 import Loader from '../components/Loader';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
+  
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  const { user, loading, error } = useSelector((state) => state.user);
+  
+  // Lấy thông tin chuyển hướng sau khi đăng nhập
+  const from = location.state?.from || '/';
+  const requiresAdmin = location.state?.requiresAdmin || false;
 
-  const { loading, error, user } = useSelector((state) => state.user);
-
-  const redirect = location.search ? location.search.split('=')[1] : '/';
+  useEffect(() => {
+    // Clear error khi component mount hoặc unmount
+    return () => {
+      dispatch(resetUserState());
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     if (user) {
-      navigate(redirect);
+      // Nếu yêu cầu quyền admin và user là admin
+      if (requiresAdmin && user.role === 'admin') {
+        navigate('/admin/dashboard');
+      }
+      // Nếu không yêu cầu quyền admin hoặc không phải là admin
+      else if (!requiresAdmin) {
+        navigate(from);
+      }
     }
-  }, [user, redirect, navigate]);
+  }, [user, navigate, from, requiresAdmin]);
 
   const submitHandler = (e) => {
     e.preventDefault();
@@ -32,48 +47,53 @@ const LoginPage = () => {
 
   return (
     <FormContainer>
-      <h1>Đăng nhập</h1>
-      {error && <Message variant='danger'>{error}</Message>}
-      {loading && <Loader />}
+      <h1 className="mb-4 text-center">Đăng nhập</h1>
+      
+      {requiresAdmin && (
+        <Alert variant="info">
+          Trang bạn đang truy cập yêu cầu quyền quản trị viên.
+        </Alert>
+      )}
+      
+      {error && <Alert variant="danger">{error}</Alert>}
+      
       <Form onSubmit={submitHandler}>
-        <Form.Group controlId='email' className='mb-3'>
-          <Form.Label>Email</Form.Label>
+        <Form.Group className="mb-3" controlId="email">
+          <Form.Label>Địa chỉ email</Form.Label>
           <Form.Control
-            type='email'
-            placeholder='Nhập email'
+            type="email"
+            placeholder="Nhập email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
         </Form.Group>
 
-        <Form.Group controlId='password' className='mb-3'>
+        <Form.Group className="mb-3" controlId="password">
           <Form.Label>Mật khẩu</Form.Label>
           <Form.Control
-            type='password'
-            placeholder='Nhập mật khẩu'
+            type="password"
+            placeholder="Nhập mật khẩu"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </Form.Group>
 
-        <Button type='submit' variant='primary' className='w-100 mb-3'>
-          Đăng nhập
+        <Button
+          type="submit"
+          variant="primary"
+          className="w-100"
+          disabled={loading}
+        >
+          {loading ? <Loader small /> : 'Đăng nhập'}
         </Button>
       </Form>
 
-      <Row className='py-3'>
+      <Row className="py-3">
         <Col>
           Chưa có tài khoản?{' '}
-          <Link to={redirect ? `/register?redirect=${redirect}` : '/register'}>
-            Đăng ký ngay
-          </Link>
-        </Col>
-      </Row>
-      <Row>
-        <Col>
-          <Link to='/forgot-password'>Quên mật khẩu?</Link>
+          <Link to="/register">Đăng ký</Link>
         </Col>
       </Row>
     </FormContainer>

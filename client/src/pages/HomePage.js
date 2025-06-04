@@ -82,7 +82,7 @@ const HomePage = () => {
           <Loader />
         ) : (
           <Row className="justify-content-center">
-            {categories.slice(0, 4).map((category) => (
+            {categories && categories.length > 0 ? categories.slice(0, 4).map((category) => (
               <Col key={category.id} sm={6} md={3} className="mb-4">
                 <Card className="h-100 category-card text-center">
                   <Card.Img
@@ -101,7 +101,9 @@ const HomePage = () => {
                   </Card.Body>
                 </Card>
               </Col>
-            ))}
+            )) : (
+              <Message>Không có danh mục sản phẩm nào</Message>
+            )}
           </Row>
         )}
         

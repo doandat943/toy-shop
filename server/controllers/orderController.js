@@ -31,7 +31,7 @@ const getOrders = async (req, res) => {
     res.json({
       success: true,
       count: orders.length,
-      data: orders
+      orders: orders
     });
   } catch (error) {
     res.status(500).json({
@@ -334,6 +334,16 @@ const deleteOrder = async (req, res) => {
 // @access  Private
 const getMyOrders = async (req, res) => {
   try {
+    console.log('getMyOrders called by user:', req.user.id);
+    
+    // Kiểm tra user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated properly'
+      });
+    }
+
     const orders = await Order.findAll({
       where: { userId: req.user.id },
       include: [
@@ -352,12 +362,43 @@ const getMyOrders = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
+    // Debug thông tin orders
+    console.log('Orders found:', orders ? orders.length : 'none');
+    console.log('Orders response type:', typeof orders);
+    console.log('Is Array:', Array.isArray(orders));
+    
+    // Mock data nếu cần thiết cho development
+    const mockOrders = [
+      {
+        id: 1,
+        orderNumber: 'ORD-001',
+        status: 'delivered',
+        totalAmount: 1500000,
+        isPaid: true,
+        paymentMethod: 'COD',
+        createdAt: new Date()
+      },
+      {
+        id: 2,
+        orderNumber: 'ORD-002',
+        status: 'processing', 
+        totalAmount: 850000,
+        isPaid: false,
+        paymentMethod: 'Banking',
+        createdAt: new Date(Date.now() - 86400000)
+      }
+    ];
+
+    // Trả về orders thật hoặc mock data nếu không có orders
+    const responseData = (orders && orders.length > 0) ? orders : [];
+    
     res.json({
       success: true,
-      count: orders.length,
-      data: orders
+      count: responseData.length,
+      data: responseData
     });
   } catch (error) {
+    console.error('Error in getMyOrders:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',

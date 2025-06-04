@@ -1,16 +1,21 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { getProducts, getProductById, createReview } from '../mocks/mockService';
 
 // Fetch products
 export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async (params = {}, { rejectWithValue }) => {
     try {
-      const data = await getProducts(params);
+      const { page = 1, keyword = '', category = '', sortBy = 'createdAt', sortOrder = 'DESC', minPrice = '', maxPrice = '', minAge = '', maxAge = '', featured = false } = params;
+      const query = new URLSearchParams({ page, keyword, category, sortBy, sortOrder, minPrice, maxPrice, minAge, maxAge, featured }).toString();
+      const { data } = await axios.get(`/api/products?${query}`);
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
     }
   }
 );
@@ -20,10 +25,14 @@ export const fetchProductDetails = createAsyncThunk(
   'products/fetchProductDetails',
   async (id, { rejectWithValue }) => {
     try {
-      const data = await getProductById(id);
+      const { data } = await axios.get(`/api/products/${id}`);
       return data.product;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
     }
   }
 );
@@ -34,18 +43,20 @@ export const createProductReview = createAsyncThunk(
   async ({ productId, review }, { getState, rejectWithValue }) => {
     try {
       const { user } = getState().user;
-      
-      // Add user name to the review
-      const reviewWithName = {
-        ...review,
-        name: user.name,
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        },
       };
-      
-      await createReview(productId, reviewWithName);
-      
+      await axios.post(`/api/products/${productId}/reviews`, review, config);
       return { success: true };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
     }
   }
 );

@@ -11,6 +11,7 @@ import blogReducer from './slices/blogSlice';
 import orderReducer from './slices/orderSlice';
 import paymentReducer from './slices/paymentSlice';
 import promotionReducer from './slices/promotionSlice';
+import dashboardReducer from './slices/dashboardSlice';
 
 // Combine reducers
 const rootReducer = combineReducers({
@@ -23,6 +24,7 @@ const rootReducer = combineReducers({
   order: orderReducer,
   payment: paymentReducer,
   promotion: promotionReducer,
+  dashboard: dashboardReducer,
   auth: userReducer, // Map auth to userReducer for compatibility with our component names
 });
 

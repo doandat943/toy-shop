@@ -22,6 +22,10 @@ const Category = sequelize.define('Category', {
   image: {
     type: DataTypes.STRING
   },
+  featured: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true

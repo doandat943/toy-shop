@@ -1,19 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Table, Button, Alert, Spinner, Card, Badge, Form, InputGroup, Row, Col } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getMyOrders } from '../slices/orderSlice';
 
 const OrdersPage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { myOrders, loading, error } = useSelector((state) => state.order);
+  const { user } = useSelector((state) => state.user);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
+    // Kiểm tra user đăng nhập
+    if (!user || !user.token) {
+      navigate('/login', { state: { from: '/orders' } });
+      return;
+    }
+    
+    // Log user info để debug
+    console.log('Current user:', user);
+    
     dispatch(getMyOrders());
-  }, [dispatch]);
+  }, [dispatch, navigate, user]);
 
   useEffect(() => {
     if (myOrders) {
@@ -30,7 +41,7 @@ const OrdersPage = () => {
         filtered = filtered.filter(order => 
           order.id.toString().includes(search) ||
           (order.paymentMethod && order.paymentMethod.toLowerCase().includes(search)) ||
-          order.orderItems.some(item => item.name.toLowerCase().includes(search))
+          order.orderItems && order.orderItems.some(item => item.name.toLowerCase().includes(search))
         );
       }
       
@@ -65,6 +76,25 @@ const OrdersPage = () => {
     return new Date(dateString).toLocaleDateString('vi-VN', options);
   };
 
+  const handleRetry = () => {
+    dispatch(getMyOrders());
+  };
+
+  if (!user || !user.token) {
+    return (
+      <Alert variant="warning">
+        <h4>Bạn chưa đăng nhập</h4>
+        <p>Vui lòng đăng nhập để xem đơn hàng của bạn.</p>
+        <Button 
+          variant="primary" 
+          onClick={() => navigate('/login', { state: { from: '/orders' } })}
+        >
+          Đăng nhập
+        </Button>
+      </Alert>
+    );
+  }
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center my-5">
@@ -76,7 +106,17 @@ const OrdersPage = () => {
   if (error) {
     return (
       <Alert variant="danger" className="my-3">
-        {error}
+        <h4>Lỗi khi tải đơn hàng</h4>
+        <p>{error}</p>
+        <hr />
+        <div className="d-flex justify-content-between">
+          <Button variant="outline-primary" onClick={handleRetry}>
+            Thử lại
+          </Button>
+          <Button variant="outline-secondary" onClick={() => navigate('/login', { state: { from: '/orders' } })}>
+            Đăng nhập lại
+          </Button>
+        </div>
       </Alert>
     );
   }
@@ -127,7 +167,7 @@ const OrdersPage = () => {
         </Card.Body>
       </Card>
 
-      {filteredOrders.length === 0 ? (
+      {!myOrders || filteredOrders.length === 0 ? (
         <Alert variant="info">
           {statusFilter !== 'all' || searchTerm ? 
             'Không tìm thấy đơn hàng nào phù hợp với bộ lọc.' : 
@@ -149,8 +189,8 @@ const OrdersPage = () => {
             {filteredOrders.map(order => (
               <tr key={order.id}>
                 <td>#{order.id}</td>
-                <td>{formatDate(order.createdAt)}</td>
-                <td>{order.total.toLocaleString('vi-VN')}đ</td>
+                <td>{formatDate(order.createdAt || new Date())}</td>
+                <td>{(order.total || order.totalPrice || 0).toLocaleString('vi-VN')}đ</td>
                 <td>
                   {order.isPaid ? (
                     <Badge bg="success">Đã thanh toán</Badge>
