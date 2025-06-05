@@ -16,6 +16,11 @@ const paymentMethodFromStorage = localStorage.getItem('paymentMethod')
   ? JSON.parse(localStorage.getItem('paymentMethod'))
   : 'cod';
 
+// Get promo code from local storage
+const promoCodeFromStorage = localStorage.getItem('promoCode')
+  ? JSON.parse(localStorage.getItem('promoCode'))
+  : null;
+
 const calculatePrices = (state) => {
   // Calculate items price
   state.itemsPrice = state.cartItems.reduce(
@@ -23,11 +28,15 @@ const calculatePrices = (state) => {
     0
   );
   
+  // Reset discount amount before recalculating
+  state.discountAmount = 0;
+
   // Calculate shipping price (free shipping for orders over 500,000₫)
-  state.shippingPrice = state.itemsPrice > 500000 ? 0 : 30000;
+  // Shipping price can be affected by promo code, so calculate it before discount
+  let calculatedShippingPrice = state.itemsPrice > 500000 ? 0 : 30000;
   
   // Calculate tax price (10% sales tax)
-  state.taxPrice = Number((0.1 * state.itemsPrice).toFixed(0));
+  state.taxPrice = Number((0.10 * state.itemsPrice).toFixed(0)); // Ensure 10% is 0.10
   
   // Apply promo code discount if available
   if (state.promoCode) {
@@ -38,18 +47,26 @@ const calculatePrices = (state) => {
     } else if (state.promoCode.discountType === 'fixed_amount') {
       state.discountAmount = state.promoCode.discountValue;
     } else if (state.promoCode.discountType === 'free_shipping') {
-      state.discountAmount = state.shippingPrice;
-      state.shippingPrice = 0;
+      // The discount amount for free shipping is the original shipping cost
+      state.discountAmount = calculatedShippingPrice; 
+      calculatedShippingPrice = 0; // Shipping becomes free
     }
   }
   
+  state.shippingPrice = calculatedShippingPrice;
+
   // Calculate total price
   state.totalPrice = (
     state.itemsPrice +
     state.shippingPrice +
     state.taxPrice -
-    (state.discountAmount || 0)
+    state.discountAmount // discountAmount is already positive
   );
+
+  // Ensure total price is not negative
+  if (state.totalPrice < 0) {
+    state.totalPrice = 0;
+  }
 };
 
 // Add to cart
@@ -184,24 +201,35 @@ export const resetPromoCode = createAsyncThunk('cart/resetPromoCode', async () =
 // Clear cart
 export const clearCart = createAsyncThunk('cart/clearCart', async () => {
   localStorage.removeItem('cartItems');
+  localStorage.removeItem('promoCode'); // Also clear promo code when clearing cart
   return [];
 });
 
-const initialState = {
-  cartItems: cartItemsFromStorage,
-  shippingAddress: shippingAddressFromStorage || {},
-  paymentMethod: paymentMethodFromStorage || 'cod',
-  itemsPrice: 0,
-  shippingPrice: 0,
-  taxPrice: 0,
-  totalPrice: 0,
-  discountAmount: 0,
-  promoCode: null,
-  promoCodeLoading: false,
-  promoCodeError: null,
-  loading: false,
-  error: null,
+// Function to create the initial state with calculated prices
+const createInitialState = () => {
+  const state = {
+    cartItems: cartItemsFromStorage,
+    shippingAddress: shippingAddressFromStorage || {},
+    paymentMethod: paymentMethodFromStorage || 'cod',
+    itemsPrice: 0,
+    shippingPrice: 0,
+    taxPrice: 0,
+    totalPrice: 0,
+    discountAmount: 0,
+    promoCode: promoCodeFromStorage,
+    promoCodeLoading: false,
+    promoCodeError: null,
+    loading: false,
+    error: null,
+  };
+
+  if (state.cartItems.length > 0) {
+    calculatePrices(state);
+  }
+  return state;
 };
+
+const initialState = createInitialState();
 
 const cartSlice = createSlice({
   name: 'cart',
@@ -211,6 +239,10 @@ const cartSlice = createSlice({
       state.promoCodeError = null;
       state.error = null;
     },
+    // Add a reducer to recalculate prices manually if needed, or ensure it's robustly handled in extraReducers
+    recalculateCartPrices: (state) => {
+        calculatePrices(state);
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -232,6 +264,11 @@ const cartSlice = createSlice({
       // Remove from cart
       .addCase(removeFromCart.fulfilled, (state, action) => {
         state.cartItems = action.payload;
+        if (state.cartItems.length === 0) { // If cart becomes empty, reset promo
+            state.promoCode = null;
+            state.discountAmount = 0;
+            localStorage.removeItem('promoCode');
+        }
         calculatePrices(state);
       })
       
@@ -248,6 +285,8 @@ const cartSlice = createSlice({
       .addCase(saveShippingAddress.fulfilled, (state, action) => {
         state.loading = false;
         state.shippingAddress = action.payload;
+        // It's good practice to recalculate prices if shipping address affects shipping cost, though current logic doesn't directly use address for shipping cost calculation in calculatePrices
+        // calculatePrices(state); 
       })
       .addCase(saveShippingAddress.rejected, (state, action) => {
         state.loading = false;
@@ -280,6 +319,9 @@ const cartSlice = createSlice({
       .addCase(applyPromoCode.rejected, (state, action) => {
         state.promoCodeLoading = false;
         state.promoCodeError = action.payload;
+        state.promoCode = null; // Clear promo code on rejection
+        state.discountAmount = 0;
+        calculatePrices(state); // Recalculate without promo
       })
       
       // Reset promo code
@@ -292,11 +334,13 @@ const cartSlice = createSlice({
       // Clear cart
       .addCase(clearCart.fulfilled, (state) => {
         state.cartItems = [];
-        calculatePrices(state);
+        state.promoCode = null; // Ensure promo code is cleared
+        state.discountAmount = 0;
+        calculatePrices(state); // This will set prices to 0
       });
   },
 });
 
-export const { resetCartState } = cartSlice.actions;
+export const { resetCartState, recalculateCartPrices } = cartSlice.actions;
 
 export default cartSlice.reducer; 

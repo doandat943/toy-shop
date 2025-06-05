@@ -619,26 +619,41 @@ const CartPage = () => {
                   <Card.Body>
                     <ListGroup variant="flush" className="order-items-list">
                       {cartItems.map((item) => (
-                        <ListGroup.Item key={item.id} className="px-0 py-2 border-bottom">
+                        <ListGroup.Item key={item.id} className="px-0 py-3 border-bottom">
                           <Row className="align-items-center">
-                            <Col xs={2} sm={1}>
-                              <span className="fw-medium">{item.qty}x</span>
+                            {/* Image Column */}
+                            <Col xs={3} sm={2} className="text-center mb-2 mb-sm-0">
+                              <ImageWithFallback
+                                src={item.image}
+                                alt={item.name}
+                                fluid
+                                rounded
+                                style={{ maxHeight: '80px', objectFit: 'contain', margin: '0 auto' }}
+                                fallbackSrc="https://placehold.co/80x80/e5e5e5/a0a0a0?text=No+Image"
+                              />
                             </Col>
-                            <Col xs={6} sm={7}>
-                              <div className="d-flex align-items-center">
-                                <ImageWithFallback 
-                                  src={item.image}
-                                  alt={item.name}
-                                  width={40}
-                                  height={40}
-                                  className="me-2"
-                                  fallbackSrc="https://placehold.co/40x40/e5e5e5/a0a0a0?text=No+Image"
-                                />
-                                <span className="order-item-name">{item.name}</span>
-                              </div>
+
+                            {/* Product Details Column */}
+                            <Col xs={9} sm={7}>
+                              <Link to={`/product/${item.id}`} className="fw-bold text-decoration-none text-dark d-block mb-1" style={{ fontSize: '0.95rem' }}>
+                                {item.name}
+                              </Link>
+                              {item.personalization && (
+                                <div className="personalization-info mb-1">
+                                  {Object.entries(item.personalization).map(([key, value]) => (
+                                    <small key={key} className="d-block text-muted" style={{ fontSize: '0.8rem' }}>
+                                      {key}: {value}
+                                    </small>
+                                  ))}
+                                </div>
+                              )}
+                              <small className="text-muted d-block">Giá: {formatPrice(item.price)}</small>
+                              <small className="text-muted">Số lượng: {item.qty}</small>
                             </Col>
-                            <Col xs={4} className="text-end">
-                              {formatPrice(item.price * item.qty)}
+
+                            {/* Subtotal Column */}
+                            <Col xs={12} sm={3} className="text-sm-end mt-2 mt-sm-0">
+                              <span className="fw-bold" style={{fontSize: '0.95rem'}}>{formatPrice(item.price * item.qty)}</span>
                             </Col>
                           </Row>
                         </ListGroup.Item>
