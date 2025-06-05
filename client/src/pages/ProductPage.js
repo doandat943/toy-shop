@@ -17,7 +17,7 @@ import Meta from '../components/Meta';
 import ProductCard from '../components/ProductCard';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { formatPrice } from '../utils/formatPrice';
-import { FaHeart, FaRegHeart, FaShoppingCart, FaArrowLeft } from 'react-icons/fa';
+import { FaHeart, FaRegHeart, FaShoppingCart, FaArrowLeft, FaPlus, FaMinus } from 'react-icons/fa';
 
 const ProductPage = () => {
   const { id } = useParams();
@@ -88,6 +88,11 @@ const ProductPage = () => {
       ...prev,
       [option]: value,
     }));
+  };
+
+  const handleQtyChange = (value) => {
+    const newQty = Math.max(1, Math.min(Number(value), product.stock || 1));
+    setQty(newQty);
   };
 
   // Filter out current product from related products
@@ -192,22 +197,45 @@ const ProductPage = () => {
                 
                 {product.stock > 0 && (
                   <ListGroup.Item>
-                    <Row>
-                      <Col>Số lượng</Col>
-                      <Col>
-                        <Form.Control
-                          as="select"
-                          value={qty}
-                          onChange={(e) => setQty(Number(e.target.value))}
-                        >
-                          {[...Array(Math.min(product.stock, 10)).keys()].map(
-                            (x) => (
-                              <option key={x + 1} value={x + 1}>
-                                {x + 1}
-                              </option>
-                            )
-                          )}
-                        </Form.Control>
+                    <Row className="align-items-center">
+                      <Col md={4} xs={5}>Số lượng</Col>
+                      <Col md={8} xs={7}>
+                        <div className="input-group quantity-input-group" style={{ maxWidth: '150px' }}>
+                          <Button 
+                            variant="outline-secondary" 
+                            size="sm"
+                            className="quantity-btn shadow-none" 
+                            onClick={() => handleQtyChange(qty - 1)}
+                            disabled={qty <= 1}
+                          >
+                            <FaMinus />
+                          </Button>
+                          <Form.Control
+                            type="number"
+                            value={qty}
+                            onChange={(e) => handleQtyChange(e.target.value)}
+                            onBlur={(e) => { // Ensure qty is valid on blur
+                                if (e.target.value === '' || isNaN(Number(e.target.value))) {
+                                    setQty(1); // Reset to 1 if input is invalid or empty
+                                } else {
+                                    handleQtyChange(e.target.value);
+                                }
+                            }}
+                            min="1"
+                            max={product.stock || 1} // Set max based on stock
+                            className="text-center quantity-input shadow-none"
+                            style={{ MozAppearance: 'textfield' }} // Hide spinners for Firefox
+                          />
+                          <Button 
+                            variant="outline-secondary" 
+                            size="sm"
+                            className="quantity-btn shadow-none"
+                            onClick={() => handleQtyChange(qty + 1)}
+                            disabled={qty >= (product.stock || 1)}
+                          >
+                            <FaPlus />
+                          </Button>
+                        </div>
                       </Col>
                     </Row>
                   </ListGroup.Item>
@@ -228,34 +256,31 @@ const ProductPage = () => {
                   </ListGroup.Item>
                 )}
                 
-                <ListGroup.Item>
-                  <Button
-                    onClick={addToCartHandler}
-                    className="btn-block"
-                    type="button"
-                    disabled={product.stock === 0}
-                  >
-                    <FaShoppingCart className="me-2" /> Thêm vào giỏ
-                  </Button>
-                </ListGroup.Item>
-
-                <ListGroup.Item>
-                  <Button
-                    onClick={toggleWishlistHandler}
-                    className="btn-block"
-                    variant={isInWishlist ? "danger" : "outline-danger"}
-                    type="button"
-                  >
-                    {isInWishlist ? (
-                      <>
-                        <FaHeart className="me-2" /> Đã thêm vào yêu thích
-                      </>
-                    ) : (
-                      <>
-                        <FaRegHeart className="me-2" /> Thêm vào yêu thích
-                      </>
-                    )}
-                  </Button>
+                {/* Combined Add to Cart and Wishlist Buttons */}
+                <ListGroup.Item className="mt-3 product-actions">
+                  <div className="d-flex gap-2">
+                    <Button
+                      onClick={addToCartHandler}
+                      className="flex-grow-1 action-btn add-to-cart-btn"
+                      type="button"
+                      disabled={product.stock === 0}
+                    >
+                      <FaShoppingCart className="me-2" /> Thêm vào giỏ
+                    </Button>
+                    <Button
+                      onClick={toggleWishlistHandler}
+                      className="flex-grow-1 action-btn wishlist-btn"
+                      variant={isInWishlist ? "danger" : "outline-danger"}
+                      type="button"
+                    >
+                      {isInWishlist ? (
+                        <FaHeart className="me-2" /> 
+                      ) : (
+                        <FaRegHeart className="me-2" /> 
+                      )}
+                      <span className="d-none d-sm-inline">Yêu thích</span> {/* Hide text on very small screens if needed */}
+                    </Button>
+                  </div>
                 </ListGroup.Item>
               </ListGroup>
             </Col>
@@ -465,6 +490,171 @@ const ProductPage = () => {
           )}
         </>
       ) : null}
+      <style jsx global>{`
+        /* Existing styles */
+        .product-image-wrapper {
+          position: relative;
+          overflow: hidden;
+          border-radius: 15px; /* Consistent rounded corners */
+          box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .main-product-image {
+          width: 100%;
+          height: auto;
+          aspect-ratio: 1 / 1; /* Maintain square aspect ratio */
+          object-fit: cover;
+          border-radius: 15px;
+        }
+        .product-thumb-col {
+          padding: 0 5px; /* Spacing between thumbs */
+        }
+        .product-thumb {
+          width: 100%;
+          height: auto;
+          aspect-ratio: 1 / 1;
+          object-fit: cover;
+          cursor: pointer;
+          border-radius: 10px; /* Rounded thumbs */
+          border: 2px solid transparent;
+          transition: border-color 0.2s ease;
+        }
+        .product-thumb:hover, .product-thumb.active {
+          border-color: #FF6B6B; /* Theme color for active/hover thumb */
+        }
+        .sale-badge-large {
+          position: absolute;
+          top: 20px;
+          left: 20px;
+          background-color: #FF6B6B; /* Theme color */
+          color: white;
+          padding: 8px 15px;
+          border-radius: 20px; /* Pill shape */
+          font-size: 0.9rem;
+          font-weight: bold;
+          text-transform: uppercase;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .product-price {
+          font-size: 1.8rem;
+          font-weight: bold;
+          color: #FF6B6B;
+        }
+        .product-price-old {
+          font-size: 1.2rem;
+          text-decoration: line-through;
+          color: #999;
+        }
+        .review-form-card {
+          background-color: #f8f9fa; /* Light background for review form */
+          border-radius: 15px;
+          padding: 2rem;
+        }
+        .product-tabs .nav-link {
+          font-size: 1.1rem;
+          font-weight: 500;
+          color: #6c757d; /* Bootstrap muted color */
+          border-bottom: 3px solid transparent;
+          transition: all 0.3s ease;
+        }
+        .product-tabs .nav-link.active {
+          color: #FF6B6B; /* Theme color for active tab */
+          border-bottom-color: #FF6B6B;
+        }
+        .related-products-section h3 {
+          margin-bottom: 2rem;
+          font-weight: bold;
+          text-align: center;
+        }
+
+        /* Enhanced Quantity Input Styles */
+        .quantity-input-group {
+          display: inline-flex; /* Use inline-flex for better wrapping if needed */
+          align-items: stretch; /* Stretch items to fill height */
+          border: 1px solid #dee2e6; /* Light border for the whole group */
+          border-radius: 20px; /* Rounded corners for the group */
+          background-color: #fff; /* White background for the group */
+          overflow: hidden; /* To ensure rounded corners clip children */
+          max-width: 130px; /* Control overall width */
+        }
+
+        .quantity-input-group .form-control.quantity-input {
+          border: none !important; /* Remove all borders from input */
+          text-align: center;
+          height: auto; /* Allow height to be determined by content and group */
+          line-height: 1.5; 
+          padding: 0.375rem 0.25rem; /* Adjust padding */
+          flex-grow: 1; /* Allow input to take available space */
+          min-width: 40px; /* Minimum width for the number */
+          background-color: transparent; /* Transparent background */
+          color: #495057; /* Standard text color */
+          box-shadow: none !important;
+          appearance: textfield; /* Standard property */
+          -moz-appearance: textfield; /* Firefox */
+        }
+        .quantity-input-group .form-control.quantity-input::-webkit-outer-spin-button,
+        .quantity-input-group .form-control.quantity-input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        
+        .quantity-input-group .quantity-btn {
+          width: 38px; 
+          height: auto; /* Allow height to be determined by content and group */
+          border: none !important; /* Remove all borders from buttons */
+          color: #6c757d; /* Subtler icon color */
+          background-color: transparent; /* Transparent background */
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          padding: 0.375rem 0; 
+          transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+          cursor: pointer;
+          box-shadow: none !important;
+        }
+        .quantity-input-group .quantity-btn:first-of-type {
+          /* Optional: subtle separator for left button */
+          /* border-right: 1px solid #e9ecef; */
+        }
+        .quantity-input-group .quantity-btn:last-of-type {
+          /* Optional: subtle separator for right button */
+          /* border-left: 1px solid #e9ecef; */
+        }
+        .quantity-input-group .quantity-btn:hover {
+          background-color: #f8f9fa; /* Light hover background */
+          color: #FF6B6B; /* Theme color for icon on hover */
+        }
+        .quantity-input-group .quantity-btn:disabled {
+          background-color: transparent; /* Keep transparent when disabled */
+          color: #adb5bd; /* Muted color for disabled icon */
+          cursor: not-allowed;
+        }
+        .quantity-input-group .quantity-btn:focus {
+          outline: none;
+          box-shadow: none; /* Remove focus ring if desired, or style it */
+        }
+
+        /* Product Action Buttons Styling */
+        .product-actions {
+          border-top: 1px solid #eee; /* Optional: add a light separator line above buttons */
+          padding-top: 1rem; /* Consistent padding */
+        }
+        .action-btn {
+          padding: 0.65rem 0.75rem; /* Adjust padding for better feel */
+          font-size: 0.95rem; /* Slightly adjust font size */
+          font-weight: 500;
+          border-radius: 8px; /* Consistent rounded corners */
+          transition: all 0.2s ease-in-out;
+        }
+        .add-to-cart-btn {
+          /* Using default primary button style from App.css or Bootstrap if not overridden */
+        }
+        .wishlist-btn {
+          /* Styles are handled by variant (danger/outline-danger) */
+        }
+        .wishlist-btn .fa-heart, .wishlist-btn .fa-reg-heart {
+          /* vertical-align: middle; */ /* May not be needed with flex on button */
+        }
+      `}</style>
     </>
   );
 };
