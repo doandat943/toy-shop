@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Navbar, Nav, Container, NavDropdown, Badge } from 'react-bootstrap';
-import { FaShoppingCart, FaUser, FaHeart, FaCogs, FaRocket, FaGift, FaBlog, FaTasks } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaHeart, FaRocket } from 'react-icons/fa';
 import { logout } from '../../slices/userSlice';
 import SearchBox from '../SearchBox';
 import { Link } from 'react-router-dom';
@@ -16,7 +16,7 @@ const Header = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 50) {
+      if (window.scrollY > 60) {
         setScrolled(true);
       } else {
         setScrolled(false);
@@ -38,12 +38,12 @@ const Header = () => {
       <Navbar 
         expand="lg" 
         collapseOnSelect 
-        className="py-2 position-sticky main-header"
+        className="py-3 position-sticky main-header"
         style={{
-          background: scrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.6)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          boxShadow: scrolled ? '0 4px 20px rgba(0, 0, 0, 0.1)' : 'none',
+          background: scrolled ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: scrolled ? '0 6px 24px rgba(0, 0, 0, 0.12)' : 'none',
           transition: 'all 0.3s ease',
           top: 0,
           zIndex: 1020,
@@ -51,58 +51,39 @@ const Header = () => {
       >
         <Container>
           <LinkContainer to="/">
-            <Navbar.Brand className="d-flex align-items-center me-4">
+            <Navbar.Brand className="d-flex align-items-center me-lg-5 me-3">
               <div 
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontSize: '1.2rem',
-                  boxShadow: '0 2px 10px rgba(255, 107, 107, 0.5)',
-                  marginRight: '10px'
-                }}
+                className="logo-icon-wrapper me-2"
               >
                 <FaRocket />
               </div>
               <span 
-                style={{
-                  fontWeight: '700',
-                  background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)',
-                  WebkitBackgroundClip: 'text',
-                  backgroundClip: 'text',
-                  color: 'transparent',
-                  fontSize: '1.5rem'
-                }}
+                className="brand-name"
               >
                 BabyBon
               </span>
             </Navbar.Brand>
           </LinkContainer>
           
-          <div className="d-none d-lg-block flex-grow-1 me-auto" style={{ maxWidth: '400px' }}>
+          <div className="d-none d-lg-block flex-grow-1 me-auto" style={{ maxWidth: '450px' }}>
             <SearchBox />
           </div>
 
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
-            <div className="d-lg-none my-2">
+            <div className="d-lg-none my-3">
               <SearchBox />
             </div>
             
             <Nav className="ms-auto align-items-center">
               <LinkContainer to="/products">
-                <Nav.Link className="mx-2 nav-link-custom">Sản Phẩm</Nav.Link>
+                <Nav.Link className="mx-lg-2 nav-link-custom">Sản Phẩm</Nav.Link>
               </LinkContainer>
 
               <NavDropdown 
-                title={<>Đặc biệt</>}
+                title={<div className="d-flex align-items-center nav-icon-bg nav-dropdown-title-custom"><span className="me-1">Đặc biệt</span></div>} 
                 id="special-nav-dropdown"
-                className="mx-2 nav-link-custom-dropdown"
+                className="mx-lg-2 nav-link-custom-dropdown special-dropdown-toggle"
               >
                 <LinkContainer to="/gift-finder">
                   <NavDropdown.Item>Tìm quà sinh nhật</NavDropdown.Item>
@@ -113,36 +94,38 @@ const Header = () => {
               </NavDropdown>
 
               <LinkContainer to="/blog">
-                <Nav.Link className="mx-2 nav-link-custom">
-                  Blog
-                </Nav.Link>
+                <Nav.Link className="mx-lg-2 nav-link-custom">Blog</Nav.Link>
               </LinkContainer>
 
-              <Nav.Link as={Link} to="/wishlist" className="mx-2 nav-icon-link position-relative">
-                <FaHeart size={20} />
-                {wishlistItems.length > 0 && (
-                  <Badge pill bg="danger" className="icon-badge">
-                    {wishlistItems.length}
-                  </Badge>
-                )}
+              <Nav.Link as={Link} to="/wishlist" className="mx-1 nav-icon-link position-relative">
+                <div className="nav-icon-bg">
+                  <FaHeart size={22} />
+                  {wishlistItems.length > 0 && (
+                    <Badge pill bg="danger" className="icon-badge">
+                      {wishlistItems.length}
+                    </Badge>
+                  )}
+                </div>
                  <span className="d-lg-none ms-2">Yêu Thích</span>
               </Nav.Link>
 
-              <Nav.Link as={Link} to="/cart" className="mx-2 nav-icon-link position-relative">
-                <FaShoppingCart size={20} />
-                {cartItems.length > 0 && (
-                  <Badge pill bg="danger" className="icon-badge">
-                    {cartItems.reduce((a, c) => a + c.qty, 0)}
-                  </Badge>
-                )}
+              <Nav.Link as={Link} to="/cart" className="mx-1 nav-icon-link position-relative">
+                <div className="nav-icon-bg">
+                  <FaShoppingCart size={22} />
+                  {cartItems.length > 0 && (
+                    <Badge pill bg="danger" className="icon-badge">
+                      {cartItems.reduce((a, c) => a + c.qty, 0)}
+                    </Badge>
+                  )}
+                </div>
                 <span className="d-lg-none ms-2">Giỏ Hàng</span>
               </Nav.Link>
 
               {user ? (
                 <NavDropdown 
-                  title={<>{user.name} <FaUser size={20} className="ms-1 d-none d-lg-inline-block" /></>}
+                  title={<div className="d-flex align-items-center nav-icon-bg"><span className="me-2 user-name-nav d-none d-xl-inline">{user.name}</span> <FaUser size={22} /></div>} 
                   id="username"
-                  className="mx-2 nav-link-custom-dropdown"
+                  className="ms-lg-2 nav-link-custom-dropdown user-dropdown"
                   align="end"
                 >
                   <LinkContainer to="/profile">
@@ -158,7 +141,7 @@ const Header = () => {
                 </NavDropdown>
               ) : (
                 <LinkContainer to="/login">
-                  <Nav.Link className="mx-2 nav-link-custom">
+                  <Nav.Link className="ms-lg-2 nav-link-custom nav-login-link">
                     <FaUser className="me-1" /> Đăng nhập
                   </Nav.Link>
                 </LinkContainer>
@@ -169,79 +152,179 @@ const Header = () => {
       </Navbar>
 
       <style jsx global>{`
+        .main-header .logo-icon-wrapper {
+          width: 42px;
+          height: 42px;
+          background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 1.3rem;
+          box-shadow: 0 3px 12px rgba(255, 107, 107, 0.55);
+        }
+        .main-header .brand-name {
+          font-weight: 700;
+          background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          font-size: 1.6rem;
+        }
+
         .main-header .nav-link-custom,
         .main-header .nav-link-custom-dropdown > a.nav-link {
           position: relative;
-          padding-top: 0.5rem;
-          padding-bottom: 0.5rem;
+          padding: 0.6rem 0.8rem;
           color: #333;
           font-weight: 500;
+          border-radius: 6px;
+          transition: color 0.2s ease, background-color 0.2s ease;
+        }
+        .main-header .nav-link-custom:hover,
+        .main-header .nav-link-custom-dropdown > a.nav-link:hover {
+            color: #FF6B6B;
+            background-color: rgba(255, 107, 107, 0.05);
         }
         
         .main-header .nav-link-custom::after,
         .main-header .nav-link-custom-dropdown > a.nav-link::after {
           content: '';
           position: absolute;
-          bottom: 0;
+          bottom: -2px;
           left: 50%;
           width: 0;
-          height: 2px;
+          height: 2.5px;
           background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-          transition: all 0.3s ease;
+          transition: width 0.3s ease;
           transform: translateX(-50%);
+          border-radius: 2px;
         }
         
         .main-header .nav-link-custom:hover::after,
         .main-header .nav-link-custom-dropdown > a.nav-link:hover::after,
         .main-header .nav-link-custom.active::after,
         .main-header .nav-link-custom-dropdown > a.nav-link.active::after {
-          width: 70%;
+          width: 60%;
+        }
+        .main-header .nav-link-custom.nav-login-link {
+            padding: 0.5rem 1rem;
+            border: 1.5px solid #FF8E53;
+            color: #FF8E53;
+        }
+        .main-header .nav-link-custom.nav-login-link:hover {
+            background-color: #FF8E53;
+            color: white;
+        }
+        .main-header .nav-link-custom.nav-login-link::after {
+            display: none;
         }
 
         .main-header .nav-icon-link {
             color: #333;
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
+            padding-top: 0.2rem;
+            padding-bottom: 0.2rem;
+            margin-left: 0.5rem !important;
+            margin-right: 0.5rem !important;
         }
-        .main-header .nav-icon-link:hover {
+        .main-header .nav-icon-bg {
+            width: auto;
+            min-width: 42px;
+            height: 42px;
+            padding: 0 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 21px;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            color: #333;
+            line-height: 1;
+        }
+        .main-header .nav-dropdown-title-custom span {
+            font-weight: 500;
+        }
+        .main-header .nav-icon-link:hover .nav-icon-bg,
+        .main-header .user-dropdown.show .nav-icon-bg,
+        .main-header .nav-link-custom-dropdown.special-dropdown-toggle > .dropdown-toggle.nav-link:hover .nav-icon-bg,
+        .main-header .nav-link-custom-dropdown.special-dropdown-toggle.show > .dropdown-toggle.nav-link .nav-icon-bg
+        {
+            background-color: rgba(255, 107, 107, 0.1);
             color: #FF6B6B;
         }
+        .main-header .user-name-nav {
+            font-weight: 500;
+        }
+
         .main-header .icon-badge {
             position: absolute;
-            top: 0px;
-            right: -5px;
+            top: 2px;
+            right: 0px;
             font-size: 0.6em;
-            padding: 0.25em 0.45em;
+            padding: 0.3em 0.5em;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
         }
 
         .main-header .dropdown-menu {
-          border: none !important;
-          background: rgba(255, 255, 255, 0.9) !important;
-          backdrop-filter: blur(12px) !important;
-          -webkit-backdrop-filter: blur(12px) !important;
-          box-shadow: 0 6px 25px rgba(0, 0, 0, 0.15) !important;
-          border-radius: 10px !important;
-          margin-top: 8px !important;
+          border: 1px solid #f0f0f0 !important;
+          background: rgba(255, 255, 255, 0.95) !important;
+          backdrop-filter: blur(15px) !important;
+          -webkit-backdrop-filter: blur(15px) !important;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+          border-radius: 12px !important;
+          margin-top: 10px !important;
+          padding-top: 0.25rem;
+          padding-bottom: 0.25rem;
         }
 
         .main-header .dropdown-item {
           transition: all 0.2s ease !important;
           font-weight: 500;
-          padding: 0.5rem 1rem;
+          padding: 0.6rem 1.2rem;
+          border-radius: 8px;
+          margin: 0.2rem 0.4rem;
+          width: auto;
         }
 
         .main-header .dropdown-item:hover {
           background: rgba(255, 107, 107, 0.1) !important;
           color: #FF6B6B !important;
+          transform: translateX(3px);
         }
         .main-header .navbar-toggler {
           border: none;
+          padding: 0.25rem 0.5rem;
+        }
+        .main-header .navbar-toggler-icon {
+            width: 1.2em;
+            height: 1.2em;
         }
         .main-header .navbar-toggler:focus {
           box-shadow: none;
         }
 
-        /* SearchBox specific styles */
+        .main-header .nav-link-custom-dropdown > a.nav-link::after {
+            bottom: 0px;
+        }
+        .main-header .nav-link-custom-dropdown .dropdown-toggle::after {
+           margin-left: 0.4em;
+           vertical-align: 0.1em;
+        }
+        .main-header .user-dropdown .dropdown-toggle::after {
+            display: none;
+        }
+
+        .main-header .nav-link-custom-dropdown.special-dropdown-toggle > .dropdown-toggle.nav-link::after {
+            display: none;
+        }
+        .main-header .nav-link-custom-dropdown.special-dropdown-toggle > .dropdown-toggle.nav-link .nav-icon-bg + .dropdown-toggle::after {
+            /* This rule might be tricky; Bootstrap applies ::after to the .dropdown-toggle. 
+               The caret is part of the .dropdown-toggle. 
+               If the structure is .nav-icon-bg > span, the caret is outside .nav-icon-bg.
+               We need to style the dropdown-toggle's caret directly. 
+            */
+        }
+
         .searchbox-form {
           display: flex;
           width: 100%;
@@ -249,33 +332,21 @@ const Header = () => {
         .searchbox-input {
           border-top-right-radius: 0 !important;
           border-bottom-right-radius: 0 !important;
-          border-top-left-radius: 20px !important; 
-          border-bottom-left-radius: 20px !important;
-          border-right: none !important; 
-          padding-right: 0.5rem; /* Add some space before button */
-          box-shadow: none !important; /* Remove default BS shadow */
-          height: calc(1.5em + .75rem + 2px); /* Match default BS button height */
-        }
-        .searchbox-input:focus {
-          border-color: #FF8E53; /* Theme color for focus */
-          box-shadow: 0 0 0 0.2rem rgba(255, 107, 107, 0.25) !important; 
+          border-right: none !important;
+          padding: 0.75rem 1rem;
+          font-size: 0.9rem;
         }
         .searchbox-button {
-          background: linear-gradient(135deg, #FF6B6B, #FF8E53) !important;
-          border-color: #FF6B6B !important;
-          color: white !important;
           border-top-left-radius: 0 !important;
           border-bottom-left-radius: 0 !important;
-          border-top-right-radius: 20px !important; 
-          border-bottom-right-radius: 20px !important;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.375rem 0.85rem; /* Adjusted padding for alignment */
+          background-color: #FF6B6B !important;
+          border-color: #FF6B6B !important;
+          color: white;
+          padding: 0.75rem 1rem;
         }
         .searchbox-button:hover {
-          background: linear-gradient(135deg, #FF8E53, #FF6B6B) !important; /* Slightly darker/shifted gradient on hover */
-          border-color: #FF8E53 !important;
+          background-color: #e05252 !important;
+          border-color: #e05252 !important;
         }
       `}</style>
     </header>

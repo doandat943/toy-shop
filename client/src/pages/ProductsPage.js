@@ -36,7 +36,6 @@ const ProductsPage = () => {
   const [localMaxPrice, setLocalMaxPrice] = useState(maxPrice);
   const [localMinAge, setLocalMinAge] = useState(minAge);
   const [localMaxAge, setLocalMaxAge] = useState(maxAge);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Get state from Redux
   const { products, loading, error, pages, page, total } = useSelector(
@@ -120,129 +119,119 @@ const ProductsPage = () => {
   };
 
   return (
-    <div className="products-page">
+    <div className="products-page py-4">
       <Container>
-        <h1>Sản phẩm</h1>
+        <h1 className="page-title">Sản phẩm</h1>
         {keyword && (
           <div className="mb-4">
-            <h3>Kết quả tìm kiếm cho: "{keyword}"</h3>
+            <h3 className="search-results-title">Kết quả tìm kiếm cho: "{keyword}"</h3>
           </div>
         )}
         
-        <Row className="mb-4">
-          <Col md={3}>
-            <Button 
-              variant="outline-primary" 
-              className="w-100 mb-3"
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-            >
-              {isFilterOpen ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
-            </Button>
-            
-            {isFilterOpen && (
-              <div className="filter-section p-3 border rounded">
-                <h4>Bộ lọc</h4>
-                
-                <Form.Group className="mb-3">
-                  <Form.Label>Danh mục</Form.Label>
-                  <Form.Control
-                    as="select"
-                    value={localCategory}
-                    onChange={(e) => setLocalCategory(e.target.value)}
-                  >
-                    <option value="">Tất cả danh mục</option>
-                    {!categoryLoading &&
-                      categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                  </Form.Control>
-                </Form.Group>
-                
-                <Form.Group className="mb-3">
-                  <Form.Label>Giá</Form.Label>
-                  <Row>
-                    <Col>
-                      <Form.Control
-                        type="number"
-                        placeholder="Từ"
-                        value={localMinPrice}
-                        onChange={(e) => setLocalMinPrice(e.target.value)}
-                      />
-                    </Col>
-                    <Col>
-                      <Form.Control
-                        type="number"
-                        placeholder="Đến"
-                        value={localMaxPrice}
-                        onChange={(e) => setLocalMaxPrice(e.target.value)}
-                      />
-                    </Col>
-                  </Row>
-                </Form.Group>
-                
-                <Form.Group className="mb-3">
-                  <Form.Label>Độ tuổi (tháng)</Form.Label>
-                  <Row>
-                    <Col>
-                      <Form.Control
-                        type="number"
-                        placeholder="Từ"
-                        value={localMinAge}
-                        onChange={(e) => setLocalMinAge(e.target.value)}
-                      />
-                    </Col>
-                    <Col>
-                      <Form.Control
-                        type="number"
-                        placeholder="Đến"
-                        value={localMaxAge}
-                        onChange={(e) => setLocalMaxAge(e.target.value)}
-                      />
-                    </Col>
-                  </Row>
-                </Form.Group>
-                
-                <Form.Group className="mb-3">
-                  <Form.Label>Sắp xếp theo</Form.Label>
-                  <Form.Control
-                    as="select"
-                    value={localSortBy}
-                    onChange={(e) => setLocalSortBy(e.target.value)}
-                  >
-                    <option value="createdAt">Mới nhất</option>
-                    <option value="price">Giá</option>
-                    <option value="name">Tên</option>
-                    <option value="rating">Đánh giá</option>
-                  </Form.Control>
-                </Form.Group>
-                
-                <Form.Group className="mb-3">
-                  <Form.Label>Thứ tự</Form.Label>
-                  <Form.Control
-                    as="select"
-                    value={localSortOrder}
-                    onChange={(e) => setLocalSortOrder(e.target.value)}
-                  >
-                    <option value="ASC">Tăng dần</option>
-                    <option value="DESC">Giảm dần</option>
-                  </Form.Control>
-                </Form.Group>
-                
-                <div className="d-grid gap-2">
-                  <Button variant="primary" onClick={applyFilters}>
-                    Áp dụng
-                  </Button>
-                  <Button variant="outline-secondary" onClick={resetFilters}>
-                    Xóa bộ lọc
-                  </Button>
-                </div>
+        <Row className="mt-4">
+          <Col md={4} lg={3}>
+            <div className="filter-section p-3 border rounded shadow-sm">
+              <h4 className="filter-title mb-3">Bộ lọc</h4>
+              
+              <Form.Group className="mb-3">
+                <Form.Label>Danh mục</Form.Label>
+                <Form.Control
+                  as="select"
+                  value={localCategory}
+                  onChange={(e) => setLocalCategory(e.target.value)}
+                >
+                  <option value="">Tất cả danh mục</option>
+                  {!categoryLoading &&
+                    categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                </Form.Control>
+              </Form.Group>
+              
+              <Form.Group className="mb-3">
+                <Form.Label>Giá</Form.Label>
+                <Row>
+                  <Col>
+                    <Form.Control
+                      type="number"
+                      placeholder="Từ"
+                      value={localMinPrice}
+                      onChange={(e) => setLocalMinPrice(e.target.value)}
+                    />
+                  </Col>
+                  <Col>
+                    <Form.Control
+                      type="number"
+                      placeholder="Đến"
+                      value={localMaxPrice}
+                      onChange={(e) => setLocalMaxPrice(e.target.value)}
+                    />
+                  </Col>
+                </Row>
+              </Form.Group>
+              
+              <Form.Group className="mb-3">
+                <Form.Label>Độ tuổi (tháng)</Form.Label>
+                <Row>
+                  <Col>
+                    <Form.Control
+                      type="number"
+                      placeholder="Từ"
+                      value={localMinAge}
+                      onChange={(e) => setLocalMinAge(e.target.value)}
+                    />
+                  </Col>
+                  <Col>
+                    <Form.Control
+                      type="number"
+                      placeholder="Đến"
+                      value={localMaxAge}
+                      onChange={(e) => setLocalMaxAge(e.target.value)}
+                    />
+                  </Col>
+                </Row>
+              </Form.Group>
+              
+              <Form.Group className="mb-3">
+                <Form.Label>Sắp xếp theo</Form.Label>
+                <Form.Control
+                  as="select"
+                  value={localSortBy}
+                  onChange={(e) => setLocalSortBy(e.target.value)}
+                >
+                  <option value="createdAt">Mới nhất</option>
+                  <option value="price">Giá</option>
+                  <option value="name">Tên</option>
+                  <option value="rating">Đánh giá</option>
+                </Form.Control>
+              </Form.Group>
+              
+              <Form.Group className="mb-3">
+                <Form.Label>Thứ tự</Form.Label>
+                <Form.Control
+                  as="select"
+                  value={localSortOrder}
+                  onChange={(e) => setLocalSortOrder(e.target.value)}
+                >
+                  <option value="ASC">Tăng dần</option>
+                  <option value="DESC">Giảm dần</option>
+                </Form.Control>
+              </Form.Group>
+              
+              <div className="d-grid gap-2">
+                <Button variant="primary" onClick={applyFilters}>
+                  Áp dụng
+                </Button>
+                <Button variant="outline-secondary" onClick={resetFilters}>
+                  Xóa bộ lọc
+                </Button>
               </div>
-            )}
+            </div>
           </Col>
           
-          <Col md={9}>
+          <Col md={8} lg={9}>
             {loading ? (
               <Loader />
             ) : error ? (
@@ -290,6 +279,49 @@ const ProductsPage = () => {
           </Col>
         </Row>
       </Container>
+      <style jsx global>{`
+        .products-page .page-title,
+        .products-page .search-results-title {
+          color: #333;
+          font-weight: 600;
+          margin-bottom: 1.5rem !important;
+        }
+        .products-page .page-title {
+          border-bottom: 2px solid #FF6B6B;
+          display: inline-block;
+          padding-bottom: 0.25rem;
+        }
+        .filter-section {
+          background-color: #fdfdff;
+        }
+        .filter-section .filter-title {
+            font-weight: 600;
+            color: #333;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        .filter-section .form-label {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: #555;
+        }
+        .filter-section .form-control,
+        .filter-section .form-select {
+            font-size: 0.9rem;
+        }
+        .filter-section .btn-primary {
+            background-color: #FF6B6B;
+            border-color: #FF6B6B;
+            font-weight: 500;
+        }
+        .filter-section .btn-primary:hover {
+            background-color: #e05252;
+            border-color: #e05252;
+        }
+        .filter-section .btn-outline-secondary {
+            font-weight: 500;
+        }
+      `}</style>
     </div>
   );
 };

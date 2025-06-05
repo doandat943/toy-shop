@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Button, Form, Pagination } from 'react-bootstrap';
+import { FaSearch, FaFolder, FaCalendarAlt } from 'react-icons/fa';
 import { fetchBlogPosts, fetchBlogCategories } from '../slices/blogSlice';
 import Loader from '../components/Loader';
 import Message from '../components/Message';
@@ -55,38 +56,40 @@ const BlogPage = () => {
   };
 
   // Generate excerpt from content
-  const getExcerpt = (content, maxLength = 150) => {
+  const getExcerpt = (content, maxLength = 120) => {
     if (!content) return '';
-    if (content.length <= maxLength) return content;
-    return content.substring(0, maxLength) + '...';
+    const textContent = content.replace(/<[^>]+>/g, ''); // Strip HTML tags for excerpt
+    if (textContent.length <= maxLength) return textContent;
+    return textContent.substring(0, maxLength) + '...';
   };
 
   return (
-    <Container className="py-5">
+    <Container className="py-4 blog-page-container">
       <Meta title="Blog - BabyBon" />
-      <h1 className="mb-4 text-center">Chuyện về BabyBon</h1>
+      <h1 className="mb-4 page-title text-center">Blog</h1>
 
-      <Row className="mb-4">
-        <Col md={8}>
-          <Form onSubmit={handleSearch}>
-            <Form.Group className="d-flex">
+      <Row className="mb-4 align-items-center filter-controls-row">
+        <Col md={7} lg={8} className="mb-3 mb-md-0">
+          <Form onSubmit={handleSearch} className="blog-search-form">
+            <Form.Group className="d-flex position-relative">
               <Form.Control
                 type="text"
                 placeholder="Tìm kiếm bài viết..."
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
+                className="search-input"
               />
-              <Button type="submit" variant="primary" className="ms-2">
-                Tìm kiếm
+              <Button type="submit" variant="primary" className="search-button">
+                <FaSearch />
               </Button>
             </Form.Group>
           </Form>
         </Col>
-        <Col md={4}>
+        <Col md={5} lg={4}>
           <Form.Select 
             value={selectedCategory} 
             onChange={handleCategoryChange}
-            className="mb-3"
+            className="category-select"
           >
             <option value="">Tất cả danh mục</option>
             {categories?.map((category) => (
@@ -103,39 +106,43 @@ const BlogPage = () => {
       ) : error ? (
         <Message variant="danger">{error}</Message>
       ) : blogPosts?.length === 0 ? (
-        <Message>Không tìm thấy bài viết nào.</Message>
+        <Message variant="info">Không tìm thấy bài viết nào phù hợp.</Message>
       ) : (
         <>
-          <Row>
+          <Row className="blog-posts-grid">
             {blogPosts?.map((post) => (
-              <Col key={post.id} sm={12} md={6} lg={4} className="mb-4">
-                <Card className="h-100 blog-card">
-                  <Card.Img 
-                    variant="top" 
-                    src={post.image || '/images/placeholder-blog.jpg'} 
-                    alt={post.title}
-                    style={{ height: '200px', objectFit: 'cover' }}
-                  />
-                  <Card.Body className="d-flex flex-column">
-                    <div className="mb-2">
+              <Col key={post.id} sm={12} md={6} lg={4} className="mb-4 d-flex">
+                <Card className="h-100 blog-card shadow-sm">
+                  <Link to={`/blog/${post.slug || post.id}`} className="blog-card-image-link">
+                    <Card.Img 
+                      variant="top" 
+                      src={post.image || 'https://placehold.co/600x400/FFF3E4/FF6B6B?text=BabyBon+Blog'}
+                      alt={post.title}
+                      className="blog-card-image"
+                    />
+                  </Link>
+                  <Card.Body className="d-flex flex-column p-3">
+                    <div className="mb-2 blog-card-meta">
                       <small className="text-muted me-3">
-                        <i className="fas fa-calendar-alt me-1"></i> {formatDate(post.createdAt)}
+                        <FaCalendarAlt className="me-1 icon-meta" /> {formatDate(post.createdAt)}
                       </small>
                       {post.category && (
-                        <small className="text-primary">
-                          <i className="fas fa-folder me-1"></i> {post.category.name}
-                        </small>
+                        <Link to={`/blog?category=${post.category.id}`} className="blog-category-link">
+                           <FaFolder className="me-1 icon-meta" /> {post.category.name}
+                        </Link>
                       )}
                     </div>
-                    <Card.Title>{post.title}</Card.Title>
-                    <Card.Text className="text-muted">
+                    <Card.Title className="blog-card-title">
+                      <Link to={`/blog/${post.slug || post.id}`} className="stretched-link-title">
+                        {post.title}
+                      </Link>
+                    </Card.Title>
+                    <Card.Text className="blog-card-excerpt text-muted small">
                       {getExcerpt(post.content)}
                     </Card.Text>
-                    <div className="mt-auto">
-                      <Link to={`/blog/${post.slug || post.id}`}>
-                        <Button variant="outline-primary" className="w-100">
-                          Đọc tiếp
-                        </Button>
+                    <div className="mt-auto pt-2">
+                      <Link to={`/blog/${post.slug || post.id}`} className="btn btn-sm btn-outline-primary read-more-btn">
+                        Đọc tiếp <span className="arrow">&rarr;</span>
                       </Link>
                     </div>
                   </Card.Body>
@@ -144,19 +151,9 @@ const BlogPage = () => {
             ))}
           </Row>
 
-          {/* Pagination */}
           {pages > 1 && (
-            <div className="d-flex justify-content-center mt-4">
+            <div className="d-flex justify-content-center mt-4 blog-pagination">
               <Pagination>
-                <Pagination.First 
-                  onClick={() => handlePageChange(1)} 
-                  disabled={currentPage === 1}
-                />
-                <Pagination.Prev 
-                  onClick={() => handlePageChange(currentPage - 1)} 
-                  disabled={currentPage === 1}
-                />
-                
                 {[...Array(pages).keys()].map((x) => (
                   <Pagination.Item
                     key={x + 1}
@@ -166,26 +163,133 @@ const BlogPage = () => {
                     {x + 1}
                   </Pagination.Item>
                 ))}
-                
-                <Pagination.Next 
-                  onClick={() => handlePageChange(currentPage + 1)} 
-                  disabled={currentPage === pages}
-                />
-                <Pagination.Last 
-                  onClick={() => handlePageChange(pages)} 
-                  disabled={currentPage === pages}
-                />
               </Pagination>
             </div>
           )}
 
-          <div className="text-center mt-4">
-            <p className="text-muted">
-              Hiển thị {blogPosts?.length} bài viết trên tổng số {total} bài viết
-            </p>
-          </div>
+          {total > 0 && (
+            <div className="text-center mt-3">
+              <p className="text-muted small">
+                Hiển thị {blogPosts?.length} trên tổng số {total} bài viết.
+              </p>
+            </div>
+          )}
         </>
       )}
+      <style jsx global>{`
+        .blog-page-container .page-title {
+          color: #333;
+          font-weight: 600;
+          border-bottom: 2px solid #FF6B6B;
+          display: inline-block;
+          padding-bottom: 0.25rem;
+          margin-bottom: 2rem !important;
+        }
+        .filter-controls-row {
+            background-color: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem !important;
+        }
+        .blog-search-form .search-input {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-right: none;
+        }
+        .blog-search-form .search-button {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            background-color: #FF6B6B;
+            border-color: #FF6B6B;
+        }
+        .blog-search-form .search-button:hover {
+            background-color: #e05252;
+            border-color: #e05252;
+        }
+        .category-select {
+            cursor: pointer;
+        }
+
+        .blog-card {
+          transition: all 0.3s ease-in-out;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+        }
+        .blog-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 15px rgba(0,0,0,0.1) !important;
+        }
+        .blog-card-image-link {
+          display: block;
+          overflow: hidden;
+          border-top-left-radius: 8px;
+          border-top-right-radius: 8px;
+        }
+        .blog-card-image {
+          height: 200px;
+          object-fit: cover;
+          transition: transform 0.3s ease-in-out;
+        }
+        .blog-card:hover .blog-card-image {
+          transform: scale(1.05);
+        }
+        .blog-card-meta .icon-meta {
+            color: #FF6B6B;
+        }
+        .blog-category-link {
+            text-decoration: none;
+            color: #FF6B6B;
+            font-weight: 500;
+        }
+        .blog-category-link:hover {
+            text-decoration: underline;
+            color: #e05252;
+        }
+        .blog-card-title {
+          font-size: 1.15rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: #333;
+        }
+        .blog-card-title .stretched-link-title {
+            text-decoration: none;
+            color: inherit;
+        }
+        .blog-card-title .stretched-link-title:hover {
+            color: #FF6B6B;
+        }
+        .blog-card-excerpt {
+          font-size: 0.9rem;
+          line-height: 1.6;
+        }
+        .read-more-btn {
+            color: #FF6B6B;
+            border-color: #FF6B6B;
+            font-weight: 500;
+        }
+        .read-more-btn:hover {
+            background-color: #FF6B6B;
+            color: white;
+        }
+        .read-more-btn .arrow {
+            transition: transform 0.2s ease-out;
+            display: inline-block;
+        }
+        .read-more-btn:hover .arrow {
+            transform: translateX(3px);
+        }
+        .blog-pagination .page-item.active .page-link {
+            background-color: #FF6B6B;
+            border-color: #FF6B6B;
+            color: white;
+        }
+        .blog-pagination .page-link {
+            color: #FF6B6B;
+        }
+        .blog-pagination .page-link:hover {
+            color: #e05252;
+        }
+      `}</style>
     </Container>
   );
 };
