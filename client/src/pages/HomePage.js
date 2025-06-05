@@ -50,7 +50,7 @@ const HomePage = () => {
         </p>
         <Link to="/products">
           <Button 
-            variant="secondary" 
+            variant="primary" 
             size="lg" 
             className={`mt-3 ${isVisible ? 'btn-glow' : ''}`}
             style={{ 
@@ -90,7 +90,7 @@ const HomePage = () => {
         
         <div className="text-center mt-4 mb-5 fade-up">
           <Link to="/products">
-            <Button variant="outline-primary">Xem tất cả sản phẩm</Button>
+            <Button className="custom-button-warm">Xem tất cả sản phẩm</Button>
           </Link>
         </div>
         

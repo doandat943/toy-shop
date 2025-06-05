@@ -4,7 +4,7 @@ import { Image } from 'react-bootstrap';
 const ImageWithFallback = ({ 
   src, 
   alt, 
-  fallbackSrc = 'https://placehold.co/400x400/e5e5e5/a0a0a0?text=No+Image', 
+  fallbackSrc = 'https://placehold.co/400x400/FFF3E4/E76F51?text=No+Image', 
   style = {},
   ...props 
 }) => {

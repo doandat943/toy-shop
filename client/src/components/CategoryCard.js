@@ -11,13 +11,13 @@ const CategoryCard = ({ category }) => {
           src={category.image}
           alt={category.name}
           className="category-img card-img-top"
-          fallbackSrc="https://placehold.co/400x300/e5e5e5/a0a0a0?text=Category"
+          fallbackSrc="https://placehold.co/400x300/FFF3E4/E76F51?text=Category"
         />
       </div>
       <Card.Body>
         <Card.Title>{category.name}</Card.Title>
         <Link to={`/products?category=${category.id}`}>
-          <Button variant="outline-primary" size="sm">
+          <Button className="custom-button-warm" size="sm">
             Xem sản phẩm
           </Button>
         </Link>

@@ -1,21 +1,21 @@
-/* Global styles with futuristic theme */
+/* Global styles with warm color theme */
 :root {
-  --primary: #FF6B6B;
-  --primary-gradient: linear-gradient(135deg, #FF6B6B, #FF8E53);
-  --secondary: #4ECDC4;
-  --secondary-gradient: linear-gradient(135deg, #4ECDC4, #2FBF71);
-  --accent: #7F5AF0;
-  --text-primary: #2B2C34;
-  --text-secondary: #72757E;
-  --surface: #FFFFFE;
-  --background: #F9F8F8;
-  --card-bg: rgba(255, 255, 255, 0.85);
-  --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  --primary: #E76F51;
+  --primary-gradient: linear-gradient(135deg, #E76F51, #F4A261);
+  --secondary: #E9C46A;
+  --secondary-gradient: linear-gradient(135deg, #E9C46A, #F4A261);
+  --accent: #2A9D8F;
+  --text-primary: #433633;
+  --text-secondary: #6D5D58;
+  --surface: #FFF8F0;
+  --background: #FFF3E4;
+  --card-bg: rgba(255, 248, 240, 0.9);
+  --card-shadow: 0 8px 32px 0 rgba(67, 54, 51, 0.12);
   --border-radius: 12px;
   --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-  --shadow-md: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
-  --shadow-lg: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+  --shadow-sm: 0 1px 3px rgba(231, 111, 81, 0.12), 0 1px 2px rgba(231, 111, 81, 0.14);
+  --shadow-md: 0 3px 6px rgba(231, 111, 81, 0.15), 0 3px 6px rgba(231, 111, 81, 0.18);
+  --shadow-lg: 0 10px 20px rgba(231, 111, 81, 0.18), 0 6px 6px rgba(231, 111, 81, 0.23);
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
@@ -30,8 +30,8 @@ body {
   background-color: var(--background);
   color: var(--text-primary);
   background-image: 
-    radial-gradient(circle at 90% 10%, rgba(255, 107, 107, 0.05) 0%, transparent 60%),
-    radial-gradient(circle at 10% 90%, rgba(78, 205, 196, 0.05) 0%, transparent 60%);
+    radial-gradient(circle at 90% 10%, rgba(231, 111, 81, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 10% 90%, rgba(233, 196, 106, 0.08) 0%, transparent 60%);
   background-attachment: fixed;
   overflow-x: hidden;
 }
@@ -111,7 +111,7 @@ h2.section-title::after {
 .btn-primary:hover, .btn-primary:focus {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, #ff5f5f, #ff8349);
+  background: linear-gradient(135deg, #e15a3d, #f39552);
   border: none;
 }
 
@@ -124,7 +124,7 @@ h2.section-title::after {
 .btn-secondary:hover, .btn-secondary:focus {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
-  background: linear-gradient(135deg, #47c5bd, #29b367);
+  background: linear-gradient(135deg, #e6bd5c, #f39552);
   border: none;
 }
 
@@ -132,6 +132,8 @@ h2.section-title::after {
   color: var(--primary);
   border: 2px solid var(--primary);
   background: transparent;
+  box-shadow: none;
+  transition: var(--transition);
 }
 
 .btn-outline-primary:hover, .btn-outline-primary:focus {
@@ -139,6 +141,27 @@ h2.section-title::after {
   border-color: transparent;
   transform: translateY(-3px);
   color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Custom warm button style */
+.custom-button-warm {
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(244, 162, 97, 0.05));
+  box-shadow: none;
+  transition: var(--transition);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.custom-button-warm:hover, .custom-button-warm:focus {
+  background: var(--primary-gradient);
+  border-color: transparent;
+  transform: translateY(-3px);
+  color: white;
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
 }
 
 /* Glow animation for buttons */
@@ -148,10 +171,10 @@ h2.section-title::after {
 
 @keyframes glow {
   from {
-    box-shadow: 0 0 5px rgba(255, 107, 107, 0.6), 0 0 10px rgba(255, 142, 83, 0.6);
+    box-shadow: 0 0 5px rgba(231, 111, 81, 0.6), 0 0 10px rgba(244, 162, 97, 0.6);
   }
   to {
-    box-shadow: 0 0 10px rgba(255, 107, 107, 0.8), 0 0 20px rgba(255, 142, 83, 0.8);
+    box-shadow: 0 0 10px rgba(231, 111, 81, 0.8), 0 0 20px rgba(244, 162, 97, 0.8);
   }
 }
 
@@ -396,7 +419,7 @@ h2.section-title::after {
   top: 0.5rem;
   left: -0.8rem;
   color: var(--primary);
-  opacity: 0.3;
+  opacity: 0.5;
 }
 
 .testimonial-name {
