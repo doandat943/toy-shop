@@ -9,8 +9,6 @@ import ProductsPage from './pages/ProductsPage';
 import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import ShippingPage from './pages/ShippingPage';
-import CheckoutPage from './pages/CheckoutPage';
 import OrderPage from './pages/OrderPage';
 import OrdersPage from './pages/OrdersPage';
 import PrivateRoute from './components/PrivateRoute';
@@ -78,8 +76,6 @@ const App = () => {
                     
                     {/* Protected Routes - Requires Authentication */}
                     <Route element={<PrivateRoute />}>
-                      <Route path="/shipping" element={<ShippingPage />} />
-                      <Route path="/checkout" element={<CheckoutPage />} />
                       <Route path="/order/:id" element={<OrderPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/profile" element={<ProfilePage />} />

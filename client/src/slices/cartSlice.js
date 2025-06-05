@@ -132,18 +132,26 @@ export const updateCartItemQty = createAsyncThunk(
 // Save shipping address
 export const saveShippingAddress = createAsyncThunk(
   'cart/saveShippingAddress',
-  async (data) => {
-    localStorage.setItem('shippingAddress', JSON.stringify(data));
-    return data;
+  async (shippingAddress, { rejectWithValue }) => {
+    try {
+      localStorage.setItem('shippingAddress', JSON.stringify(shippingAddress));
+      return shippingAddress;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
 // Save payment method
 export const savePaymentMethod = createAsyncThunk(
   'cart/savePaymentMethod',
-  async (data) => {
-    localStorage.setItem('paymentMethod', JSON.stringify(data));
-    return data;
+  async (paymentMethod, { rejectWithValue }) => {
+    try {
+      localStorage.setItem('paymentMethod', JSON.stringify(paymentMethod));
+      return paymentMethod;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
@@ -181,8 +189,8 @@ export const clearCart = createAsyncThunk('cart/clearCart', async () => {
 
 const initialState = {
   cartItems: cartItemsFromStorage,
-  shippingAddress: shippingAddressFromStorage,
-  paymentMethod: paymentMethodFromStorage,
+  shippingAddress: shippingAddressFromStorage || {},
+  paymentMethod: paymentMethodFromStorage || 'cod',
   itemsPrice: 0,
   shippingPrice: 0,
   taxPrice: 0,
@@ -234,13 +242,29 @@ const cartSlice = createSlice({
       })
       
       // Save shipping address
+      .addCase(saveShippingAddress.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(saveShippingAddress.fulfilled, (state, action) => {
+        state.loading = false;
         state.shippingAddress = action.payload;
+      })
+      .addCase(saveShippingAddress.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       
       // Save payment method
+      .addCase(savePaymentMethod.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(savePaymentMethod.fulfilled, (state, action) => {
+        state.loading = false;
         state.paymentMethod = action.payload;
+      })
+      .addCase(savePaymentMethod.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       
       // Apply promo code
