@@ -20,6 +20,7 @@ import PromotionalCalendarPage from './pages/PromotionalCalendarPage';
 import BlogPage from './pages/BlogPage';
 import BlogDetailPage from './pages/BlogDetailPage';
 import ProfilePage from './pages/ProfilePage';
+import WishlistPage from './pages/WishlistPage';
 
 // Admin pages
 import DashboardPage from './pages/admin/DashboardPage';
@@ -82,6 +83,7 @@ const App = () => {
                       <Route path="/order/:id" element={<OrderPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
+                      <Route path="/wishlist" element={<WishlistPage />} />
                     </Route>
 
                     {/* Special features */}

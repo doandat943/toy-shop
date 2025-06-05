@@ -100,7 +100,7 @@ const Header = () => {
               </LinkContainer>
 
               <NavDropdown 
-                title={<><FaGift className="me-1" /> Đặc biệt</>} 
+                title={<>Đặc biệt</>}
                 id="special-nav-dropdown"
                 className="mx-2 nav-link-custom-dropdown"
               >
@@ -114,7 +114,7 @@ const Header = () => {
 
               <LinkContainer to="/blog">
                 <Nav.Link className="mx-2 nav-link-custom">
-                  <FaBlog className="me-1" /> Chuyện về BabyBon
+                  Blog
                 </Nav.Link>
               </LinkContainer>
 
@@ -140,7 +140,7 @@ const Header = () => {
 
               {user ? (
                 <NavDropdown 
-                  title={<><FaUser size={20} className="me-1 d-none d-lg-inline-block" /> {user.name}</>} 
+                  title={<>{user.name} <FaUser size={20} className="ms-1 d-none d-lg-inline-block" /></>}
                   id="username"
                   className="mx-2 nav-link-custom-dropdown"
                   align="end"
@@ -162,28 +162,6 @@ const Header = () => {
                     <FaUser className="me-1" /> Đăng nhập
                   </Nav.Link>
                 </LinkContainer>
-              )}
-
-              {user && user.role === 'admin' && (
-                <NavDropdown 
-                  title={<><FaTasks size={20} className="me-1 d-none d-lg-inline-block" /> Quản lý</>} 
-                  id="adminmenu"
-                  className="mx-2 nav-link-custom-dropdown"
-                  align="end"
-                >
-                  <NavDropdown.Item as={Link} to="/admin/dashboard">
-                    <FaCogs className="me-2" /> Bảng điều khiển
-                  </NavDropdown.Item>
-                  <LinkContainer to="/admin/products">
-                    <NavDropdown.Item>Sản phẩm</NavDropdown.Item>
-                  </LinkContainer>
-                  <LinkContainer to="/admin/orders">
-                    <NavDropdown.Item>Đơn hàng</NavDropdown.Item>
-                  </LinkContainer>
-                  <LinkContainer to="/admin/carousel">
-                    <NavDropdown.Item>Carousel</NavDropdown.Item>
-                  </LinkContainer>
-                </NavDropdown>
               )}
             </Nav>
           </Navbar.Collapse>
