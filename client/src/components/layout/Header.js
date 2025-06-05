@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { LinkContainer } from 'react-router-bootstrap';
 import { Navbar, Nav, Container, NavDropdown, Badge } from 'react-bootstrap';
-import { FaShoppingCart, FaUser, FaHeart, FaCogs } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaHeart, FaCogs, FaRocket, FaGift, FaBlog } from 'react-icons/fa';
 import { logout } from '../../slices/userSlice';
 import SearchBox from '../SearchBox';
 import { Link } from 'react-router-dom';
@@ -12,6 +12,22 @@ const Header = () => {
   const { user } = useSelector((state) => state.user);
   const { cartItems } = useSelector((state) => state.cart);
   const { wishlistItems } = useSelector((state) => state.wishlist);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const logoutHandler = () => {
     dispatch(logout());
@@ -19,18 +35,52 @@ const Header = () => {
 
   return (
     <header>
-      <Navbar bg="primary" variant="dark" expand="lg" collapseOnSelect className="py-2">
+      <Navbar 
+        expand="lg" 
+        collapseOnSelect 
+        className="py-2 position-sticky"
+        style={{
+          background: scrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.6)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: scrolled ? '0 4px 20px rgba(0, 0, 0, 0.1)' : 'none',
+          transition: 'all 0.3s ease',
+          top: 0,
+          zIndex: 1000,
+        }}
+      >
         <Container>
           <LinkContainer to="/">
-            <Navbar.Brand>
-              <img
-                src="/logo.png"
-                width="30"
-                height="30"
-                className="d-inline-block align-top me-2"
-                alt="BabyBon Logo"
-              />
-              BabyBon
+            <Navbar.Brand className="d-flex align-items-center">
+              <div 
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '1.2rem',
+                  boxShadow: '0 2px 10px rgba(255, 107, 107, 0.5)',
+                  marginRight: '10px'
+                }}
+              >
+                <FaRocket />
+              </div>
+              <span 
+                style={{
+                  fontWeight: '700',
+                  background: 'linear-gradient(135deg, #FF6B6B, #FF8E53)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                  fontSize: '1.5rem'
+                }}
+              >
+                BabyBon
+              </span>
             </Navbar.Brand>
           </LinkContainer>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
@@ -38,23 +88,41 @@ const Header = () => {
             <SearchBox />
             <Nav className="ms-auto">
               <LinkContainer to="/products">
-                <Nav.Link>Sản Phẩm</Nav.Link>
+                <Nav.Link className="mx-2 position-relative nav-link-hover">Sản Phẩm</Nav.Link>
               </LinkContainer>
               <LinkContainer to="/wishlist">
-                <Nav.Link>
-                  <FaHeart /> Yêu Thích
+                <Nav.Link className="mx-2 position-relative nav-link-hover">
+                  <FaHeart className="me-1" /> Yêu Thích
                   {wishlistItems.length > 0 && (
-                    <Badge pill bg="danger" className="ms-1">
+                    <Badge 
+                      pill 
+                      bg="danger" 
+                      style={{
+                        position: 'absolute',
+                        top: '0',
+                        right: '0',
+                        transform: 'translate(50%, -30%)'
+                      }}
+                    >
                       {wishlistItems.length}
                     </Badge>
                   )}
                 </Nav.Link>
               </LinkContainer>
               <LinkContainer to="/cart">
-                <Nav.Link>
-                  <FaShoppingCart /> Giỏ Hàng
+                <Nav.Link className="mx-2 position-relative nav-link-hover">
+                  <FaShoppingCart className="me-1" /> Giỏ Hàng
                   {cartItems.length > 0 && (
-                    <Badge pill bg="danger" className="ms-1">
+                    <Badge 
+                      pill 
+                      bg="danger" 
+                      style={{
+                        position: 'absolute',
+                        top: '0',
+                        right: '0',
+                        transform: 'translate(50%, -30%)'
+                      }}
+                    >
                       {cartItems.reduce((a, c) => a + c.qty, 0)}
                     </Badge>
                   )}
@@ -62,7 +130,11 @@ const Header = () => {
               </LinkContainer>
 
               {user ? (
-                <NavDropdown title={<><FaUser /> {user.name}</>} id="username">
+                <NavDropdown 
+                  title={<><FaUser className="me-1" /> {user.name}</>} 
+                  id="username"
+                  className="mx-2"
+                >
                   <LinkContainer to="/profile">
                     <NavDropdown.Item>Tài khoản</NavDropdown.Item>
                   </LinkContainer>
@@ -76,14 +148,18 @@ const Header = () => {
                 </NavDropdown>
               ) : (
                 <LinkContainer to="/login">
-                  <Nav.Link>
-                    <FaUser /> Đăng nhập
+                  <Nav.Link className="mx-2 nav-link-hover">
+                    <FaUser className="me-1" /> Đăng nhập
                   </Nav.Link>
                 </LinkContainer>
               )}
 
               {user && user.role === 'admin' && (
-                <NavDropdown title="Admin" id="adminmenu">
+                <NavDropdown 
+                  title={<><FaCogs className="me-1" /> Admin</>} 
+                  id="adminmenu"
+                  className="mx-2"
+                >
                   <NavDropdown.Item as={Link} to="/admin/dashboard">
                     <FaCogs className="me-2" /> Quản trị hệ thống
                   </NavDropdown.Item>
@@ -108,7 +184,11 @@ const Header = () => {
                 </NavDropdown>
               )}
 
-              <NavDropdown title="Đặc biệt" id="special-nav-dropdown">
+              <NavDropdown 
+                title={<><FaGift className="me-1" /> Đặc biệt</>} 
+                id="special-nav-dropdown"
+                className="mx-2"
+              >
                 <LinkContainer to="/gift-finder">
                   <NavDropdown.Item>Tìm quà sinh nhật</NavDropdown.Item>
                 </LinkContainer>
@@ -118,12 +198,56 @@ const Header = () => {
               </NavDropdown>
 
               <LinkContainer to="/blog">
-                <Nav.Link>Chuyện về BabyBon</Nav.Link>
+                <Nav.Link className="mx-2 nav-link-hover">
+                  <FaBlog className="me-1" /> Chuyện về BabyBon
+                </Nav.Link>
               </LinkContainer>
             </Nav>
           </Navbar.Collapse>
         </Container>
       </Navbar>
+
+      <style jsx>{`
+        .nav-link-hover {
+          position: relative;
+        }
+        
+        .nav-link-hover::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 50%;
+          width: 0;
+          height: 2px;
+          background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+          transition: all 0.3s ease;
+          transform: translateX(-50%);
+        }
+        
+        .nav-link-hover:hover::after {
+          width: 80%;
+        }
+
+        .dropdown-menu {
+          border: none !important;
+          background: rgba(255, 255, 255, 0.8) !important;
+          backdrop-filter: blur(10px) !important;
+          -webkit-backdrop-filter: blur(10px) !important;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+          border-radius: 12px !important;
+          overflow: hidden !important;
+          margin-top: 10px !important;
+        }
+
+        .dropdown-item {
+          transition: all 0.2s ease !important;
+        }
+
+        .dropdown-item:hover {
+          background: rgba(255, 107, 107, 0.1) !important;
+          color: #FF6B6B !important;
+        }
+      `}</style>
     </header>
   );
 };

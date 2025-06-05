@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Row, Col, Button, Card, Container } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
@@ -10,8 +10,10 @@ import Loader from '../components/Loader';
 import Message from '../components/Message';
 import { addToWishlist, removeFromWishlist } from '../slices/wishlistSlice';
 
+
 const HomePage = () => {
   const dispatch = useDispatch();
+  const [isVisible, setIsVisible] = useState(false);
   
   const { loading, error, products } = useSelector((state) => state.product);
   const { categories, loading: categoryLoading } = useSelector((state) => state.category);
@@ -20,6 +22,11 @@ const HomePage = () => {
   useEffect(() => {
     dispatch(fetchProducts({ featured: true }));
     dispatch(fetchCategories());
+    
+    // Animation trigger
+    setTimeout(() => {
+      setIsVisible(true);
+    }, 300);
   }, [dispatch]);
   
   // Toggle wishlist
@@ -36,13 +43,22 @@ const HomePage = () => {
   return (
     <div className="homepage">
       {/* Hero Section */}
-      <div className="hero-section text-center mb-5 py-5 bg-light">
-        <h1>BabyBon</h1>
-        <p className="lead">
+      <div className="hero-section">
+        <h1 style={{ opacity: isVisible ? 1 : 0, transition: 'opacity 0.8s ease' }}>BabyBon</h1>
+        <p className="lead" style={{ opacity: isVisible ? 1 : 0, transition: 'opacity 0.8s ease 0.3s' }}>
           Đồ chơi giáo dục chất lượng cao cho trẻ em
         </p>
         <Link to="/products">
-          <Button variant="primary" size="lg" className="mt-3">
+          <Button 
+            variant="secondary" 
+            size="lg" 
+            className={`mt-3 ${isVisible ? 'btn-glow' : ''}`}
+            style={{ 
+              opacity: isVisible ? 1 : 0, 
+              transform: isVisible ? 'translateY(0)' : 'translateY(20px)', 
+              transition: 'opacity 0.8s ease 0.6s, transform 0.8s ease 0.6s' 
+            }}
+          >
             Mua sắm ngay
           </Button>
         </Link>
@@ -50,7 +66,7 @@ const HomePage = () => {
       
       {/* Featured Products Section */}
       <Container>
-        <h2 className="text-center mb-4">Sản phẩm nổi bật</h2>
+        <h2 className="section-title text-center mb-5">Sản phẩm nổi bật</h2>
         
         {loading ? (
           <Loader />
@@ -58,34 +74,38 @@ const HomePage = () => {
           <Message variant="danger">{error}</Message>
         ) : (
           <Row>
-            {products.slice(0, 8).map((product) => (
+            {products.slice(0, 8).map((product, index) => (
               <Col key={product.id} sm={6} md={3} className="mb-4">
+                <div className={`fade-up delay-${index % 3 + 1}`}>
                 <ProductCard
                   product={product}
                   isFavorite={wishlistItems.includes(product.id)}
                   onToggleFavorite={toggleWishlist}
                 />
+                </div>
               </Col>
             ))}
           </Row>
         )}
         
-        <div className="text-center mt-4 mb-5">
+        <div className="text-center mt-4 mb-5 fade-up">
           <Link to="/products">
             <Button variant="outline-primary">Xem tất cả sản phẩm</Button>
           </Link>
         </div>
         
         {/* Categories Section */}
-        <h2 className="text-center mb-4">Danh mục sản phẩm</h2>
+        <h2 className="section-title text-center mb-5">Danh mục sản phẩm</h2>
         
         {categoryLoading ? (
           <Loader />
         ) : (
           <Row className="justify-content-center">
-            {categories && categories.length > 0 ? categories.slice(0, 4).map((category) => (
+            {categories && categories.length > 0 ? categories.slice(0, 4).map((category, index) => (
               <Col key={category.id} sm={6} md={3} className="mb-4">
-                <CategoryCard category={category} />
+                <div className={`fade-up delay-${index % 3 + 1}`}>
+                  <CategoryCard category={category} />
+                </div>
               </Col>
             )) : (
               <Message>Không có danh mục sản phẩm nào</Message>
@@ -95,32 +115,32 @@ const HomePage = () => {
         
         {/* Features Section */}
         <div className="features-section py-5">
-          <h2 className="text-center mb-4">Lý do chọn BabyBon</h2>
+          <h2 className="section-title text-center mb-5">Lý do chọn BabyBon</h2>
           <Row>
-            <Col md={4} className="mb-4 text-center">
+            <Col md={4} className="mb-4 text-center fade-up delay-1">
               <div className="feature-icon mb-3">🧸</div>
-              <h4>Chất lượng cao</h4>
-              <p>Sản phẩm được làm từ vật liệu an toàn, thân thiện với trẻ em</p>
+              <h4 className="feature-title">Chất lượng cao</h4>
+              <p>Sản phẩm được làm từ vật liệu an toàn, thân thiện với trẻ em và đạt tiêu chuẩn quốc tế</p>
             </Col>
-            <Col md={4} className="mb-4 text-center">
+            <Col md={4} className="mb-4 text-center fade-up delay-2">
               <div className="feature-icon mb-3">🧠</div>
-              <h4>Phát triển trí tuệ</h4>
-              <p>Đồ chơi giáo dục giúp trẻ phát triển kỹ năng và tư duy sáng tạo</p>
+              <h4 className="feature-title">Phát triển trí tuệ</h4>
+              <p>Đồ chơi giáo dục giúp trẻ phát triển kỹ năng và tư duy sáng tạo từ sớm</p>
             </Col>
-            <Col md={4} className="mb-4 text-center">
+            <Col md={4} className="mb-4 text-center fade-up delay-3">
               <div className="feature-icon mb-3">💝</div>
-              <h4>Thiết kế đặc biệt</h4>
-              <p>Sản phẩm được thiết kế đặc biệt theo nhu cầu và sở thích của trẻ</p>
+              <h4 className="feature-title">Thiết kế đặc biệt</h4>
+              <p>Sản phẩm được thiết kế đặc biệt theo nhu cầu và sở thích của trẻ em hiện đại</p>
             </Col>
           </Row>
         </div>
         
         {/* Testimonials Section */}
         <div className="testimonials-section py-5">
-          <h2 className="text-center mb-4">Khách hàng nói gì về BabyBon</h2>
+          <h2 className="section-title text-center mb-5">Khách hàng nói gì về BabyBon</h2>
           <Row>
-            <Col md={4} className="mb-4">
-              <Card className="h-100 testimonial-card">
+            <Col md={4} className="mb-4 fade-up delay-1">
+              <Card className="testimonial-card h-100">
                 <Card.Body>
                   <p className="testimonial-quote">
                     "Sản phẩm rất chất lượng, con tôi rất thích và chơi mỗi ngày. Đây là món quà tốt nhất cho bé!"
@@ -130,8 +150,8 @@ const HomePage = () => {
                 </Card.Body>
               </Card>
             </Col>
-            <Col md={4} className="mb-4">
-              <Card className="h-100 testimonial-card">
+            <Col md={4} className="mb-4 fade-up delay-2">
+              <Card className="testimonial-card h-100">
                 <Card.Body>
                   <p className="testimonial-quote">
                     "BabyBon đã giúp con tôi phát triển kỹ năng vận động tinh rất nhanh. Tôi rất hài lòng!"
@@ -141,8 +161,8 @@ const HomePage = () => {
                 </Card.Body>
               </Card>
             </Col>
-            <Col md={4} className="mb-4">
-              <Card className="h-100 testimonial-card">
+            <Col md={4} className="mb-4 fade-up delay-3">
+              <Card className="testimonial-card h-100">
                 <Card.Body>
                   <p className="testimonial-quote">
                     "Dịch vụ khách hàng tuyệt vời, giao hàng nhanh. Sản phẩm đúng như mô tả và rất bền."
@@ -153,6 +173,14 @@ const HomePage = () => {
               </Card>
             </Col>
           </Row>
+        </div>
+
+        {/* CTA Section */}
+        <div className="cta-section py-5 my-5 text-center fade-up">
+          <h2 className="mb-4">Sẵn sàng khám phá những món đồ chơi tuyệt vời?</h2>
+          <Link to="/products">
+            <Button variant="primary" size="lg" className="btn-glow">Mua sắm ngay</Button>
+          </Link>
         </div>
       </Container>
     </div>
