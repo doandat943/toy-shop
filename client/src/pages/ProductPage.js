@@ -15,6 +15,7 @@ import Loader from '../components/Loader';
 import Message from '../components/Message';
 import Meta from '../components/Meta';
 import ProductCard from '../components/ProductCard';
+import ImageWithFallback from '../components/ImageWithFallback';
 import { formatPrice } from '../utils/formatPrice';
 import { FaHeart, FaRegHeart, FaShoppingCart, FaArrowLeft } from 'react-icons/fa';
 
@@ -107,7 +108,12 @@ const ProductPage = () => {
           <Row>
             <Col md={5}>
               <div className="product-image-wrapper">
-                <Image src={product.thumbnail} alt={product.name} fluid className="main-product-image" />
+                <ImageWithFallback 
+                  src={product.thumbnail} 
+                  alt={product.name} 
+                  className="main-product-image" 
+                  fallbackSrc="https://placehold.co/800x600/e5e5e5/a0a0a0?text=No+Image"
+                />
                 {product.onSale && (
                   <div className="sale-badge-large">SALE</div>
                 )}
@@ -116,7 +122,12 @@ const ProductPage = () => {
                 <Row className="mt-3">
                   {product.images.slice(0, 4).map((image, index) => (
                     <Col key={index} xs={3} className="product-thumb-col">
-                      <Image src={image} alt={`${product.name} ${index + 1}`} fluid className="product-thumb" />
+                      <ImageWithFallback 
+                        src={image} 
+                        alt={`${product.name} ${index + 1}`} 
+                        className="product-thumb" 
+                        fallbackSrc="https://placehold.co/150x150/e5e5e5/a0a0a0?text=No+Image"
+                      />
                     </Col>
                   ))}
                 </Row>

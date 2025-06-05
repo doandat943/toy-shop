@@ -8,6 +8,7 @@ import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import Loader from '../../components/Loader';
 import Message from '../../components/Message';
 import Meta from '../../components/Meta';
+import ImageWithFallback from '../../components/ImageWithFallback';
 import {
   fetchProductDetails,
   resetProductState,
@@ -306,21 +307,21 @@ const ProductFormPage = () => {
               <Card className="mb-4">
                 <Card.Header as="h5">Hình ảnh và video</Card.Header>
                 <Card.Body>
-                  <Form.Group className="mb-4">
-                    <Form.Label>Hình đại diện sản phẩm</Form.Label>
-                    <div className="d-flex align-items-center mb-2">
+                  <Form.Group className="mb-3">
+                    <Form.Label>Ảnh chính</Form.Label>
+                    <div className="d-flex align-items-center">
                       {thumbnailPreview ? (
-                        <div className="position-relative me-3">
-                          <img
+                        <div className="admin-img-container">
+                          <ImageWithFallback
                             src={thumbnailPreview}
                             alt="Thumbnail preview"
-                            style={{ width: '100px', height: '100px', objectFit: 'cover' }}
-                            className="border rounded"
+                            className="admin-thumbnail-preview"
+                            fallbackSrc="https://placehold.co/100x100/e5e5e5/a0a0a0?text=No+Image"
                           />
                           <Button
                             variant="danger"
                             size="sm"
-                            className="position-absolute top-0 end-0"
+                            className="admin-img-delete-btn"
                             onClick={() => {
                               setThumbnail(null);
                               setThumbnailPreview('');
@@ -331,8 +332,8 @@ const ProductFormPage = () => {
                         </div>
                       ) : (
                         <div
-                          className="border rounded d-flex justify-content-center align-items-center me-3"
-                          style={{ width: '100px', height: '100px', backgroundColor: '#f8f9fa' }}
+                          className="admin-upload-placeholder me-3"
+                          onClick={() => document.getElementById('thumbnail-upload').click()}
                         >
                           <FaImage size={30} className="text-secondary" />
                         </div>
@@ -354,17 +355,17 @@ const ProductFormPage = () => {
                     <Form.Label>Hình ảnh bổ sung</Form.Label>
                     <div className="d-flex flex-wrap mb-2">
                       {imagesPreviews.map((preview, index) => (
-                        <div key={index} className="position-relative me-3 mb-3">
-                          <img
+                        <div key={index} className="admin-img-container">
+                          <ImageWithFallback
                             src={preview}
                             alt={`Preview ${index + 1}`}
-                            style={{ width: '100px', height: '100px', objectFit: 'cover' }}
-                            className="border rounded"
+                            className="admin-thumbnail-preview"
+                            fallbackSrc="https://placehold.co/100x100/e5e5e5/a0a0a0?text=No+Image"
                           />
                           <Button
                             variant="danger"
                             size="sm"
-                            className="position-absolute top-0 end-0"
+                            className="admin-img-delete-btn"
                             onClick={() => removeImage(index)}
                           >
                             <FaTrash />
@@ -372,13 +373,7 @@ const ProductFormPage = () => {
                         </div>
                       ))}
                       <div
-                        className="border rounded d-flex justify-content-center align-items-center cursor-pointer"
-                        style={{ 
-                          width: '100px', 
-                          height: '100px', 
-                          backgroundColor: '#f8f9fa', 
-                          cursor: 'pointer' 
-                        }}
+                        className="admin-upload-placeholder"
                         onClick={() => document.getElementById('images-upload').click()}
                       >
                         <FaUpload size={30} className="text-secondary" />

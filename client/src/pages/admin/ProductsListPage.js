@@ -7,6 +7,7 @@ import Loader from '../../components/Loader';
 import Message from '../../components/Message';
 import Meta from '../../components/Meta';
 import Paginate from '../../components/Paginate';
+import ImageWithFallback from '../../components/ImageWithFallback';
 import { fetchProducts, deleteProduct, resetProductState } from '../../slices/productSlice';
 import { fetchCategories } from '../../slices/categorySlice';
 import { formatPrice } from '../../utils/formatPrice';
@@ -149,11 +150,11 @@ const ProductsListPage = () => {
               {products.map((product) => (
                 <tr key={product.id}>
                   <td>
-                    <img
-                      src={product.thumbnail || '/images/placeholder.jpg'}
+                    <ImageWithFallback
+                      src={product.thumbnail}
                       alt={product.name}
-                      style={{ width: '50px', height: '50px', objectFit: 'cover' }}
-                      className="img-thumbnail"
+                      className="admin-product-img img-thumbnail"
+                      fallbackSrc="https://placehold.co/50x50/e5e5e5/a0a0a0?text=No+Image"
                     />
                   </td>
                   <td>

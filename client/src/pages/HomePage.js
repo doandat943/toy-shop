@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { fetchProducts } from '../slices/productSlice';
 import { fetchCategories } from '../slices/categorySlice';
 import ProductCard from '../components/ProductCard';
+import CategoryCard from '../components/CategoryCard';
 import Loader from '../components/Loader';
 import Message from '../components/Message';
 import { addToWishlist, removeFromWishlist } from '../slices/wishlistSlice';
@@ -84,22 +85,7 @@ const HomePage = () => {
           <Row className="justify-content-center">
             {categories && categories.length > 0 ? categories.slice(0, 4).map((category) => (
               <Col key={category.id} sm={6} md={3} className="mb-4">
-                <Card className="h-100 category-card text-center">
-                  <Card.Img
-                    variant="top"
-                    src={category.image}
-                    className="category-img"
-                    alt={category.name}
-                  />
-                  <Card.Body>
-                    <Card.Title>{category.name}</Card.Title>
-                    <Link to={`/products?category=${category.id}`}>
-                      <Button variant="outline-primary" size="sm">
-                        Xem sản phẩm
-                      </Button>
-                    </Link>
-                  </Card.Body>
-                </Card>
+                <CategoryCard category={category} />
               </Col>
             )) : (
               <Message>Không có danh mục sản phẩm nào</Message>

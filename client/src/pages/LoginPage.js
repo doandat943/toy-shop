@@ -9,13 +9,13 @@ import Loader from '../components/Loader';
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const { user, loading, error } = useSelector((state) => state.user);
-  
+
   // Lấy thông tin chuyển hướng sau khi đăng nhập
   const from = location.state?.from || '/';
   const requiresAdmin = location.state?.requiresAdmin || false;

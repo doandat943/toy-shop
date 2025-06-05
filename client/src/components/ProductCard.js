@@ -6,6 +6,7 @@ import { FaHeart, FaRegHeart, FaShoppingCart, FaStar, FaStarHalfAlt, FaRegStar }
 import { addToCart } from '../slices/cartSlice';
 import { formatPrice } from '../utils/formatPrice';
 import Rating from './Rating';
+import ImageWithFallback from './ImageWithFallback';
 
 const ProductCard = ({ product, isFavorite, onToggleFavorite }) => {
   const dispatch = useDispatch();
@@ -26,12 +27,12 @@ const ProductCard = ({ product, isFavorite, onToggleFavorite }) => {
         </Button>
       </div>
       
-      <Link to={`/product/${product.id}`}>
-        <Card.Img
-          src={product.thumbnail || '/images/placeholder.jpg'}
-          variant="top"
-          className="product-img"
+      <Link to={`/product/${product.id}`} className="product-img-container">
+        <ImageWithFallback
+          src={product.thumbnail}
           alt={product.name}
+          className="product-img card-img-top"
+          fallbackSrc="https://placehold.co/400x400/e5e5e5/a0a0a0?text=No+Image"
         />
       </Link>
       

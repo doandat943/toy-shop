@@ -100,7 +100,7 @@ export const getUserProfile = createAsyncThunk(
 
       // Sử dụng URL tuyệt đối
       const { data } = await axios.get('http://localhost:5000/api/auth/me', config);
-      
+
       console.log('getUserProfile response:', data);
 
       if (data && data.data && data.data.user) {
@@ -165,7 +165,7 @@ export const updateUserProfile = createAsyncThunk(
 
       // Sử dụng URL tuyệt đối
       const { data } = await axios.put('http://localhost:5000/api/users/profile', userData, config);
-      
+
       console.log('Profile update response:', data);
 
       if (data && data.data) {
