@@ -152,6 +152,29 @@ const Order = sequelize.define('Order', {
                      date.getDate().toString().padStart(2, '0');
       const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
       order.orderNumber = `BB-${dateStr}-${randomNum}`;
+      
+      // Auto calculate totalAmount if not set
+      if (order.totalAmount === 0) {
+        const subTotal = parseFloat(order.subTotal || 0);
+        const shippingCost = parseFloat(order.shippingCost || 0);
+        const discount = parseFloat(order.discount || 0);
+        const tax = parseFloat(order.tax || 0);
+        
+        order.totalAmount = subTotal + shippingCost + tax - discount;
+      }
+    },
+    
+    beforeUpdate: (order) => {
+      // Auto recalculate totalAmount when relevant fields change
+      if (order.changed('subTotal') || order.changed('shippingCost') || 
+          order.changed('discount') || order.changed('tax')) {
+        const subTotal = parseFloat(order.subTotal || 0);
+        const shippingCost = parseFloat(order.shippingCost || 0);
+        const discount = parseFloat(order.discount || 0);
+        const tax = parseFloat(order.tax || 0);
+        
+        order.totalAmount = subTotal + shippingCost + tax - discount;
+      }
     }
   }
 });

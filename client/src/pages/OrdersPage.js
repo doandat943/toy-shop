@@ -190,7 +190,7 @@ const OrdersPage = () => {
               <tr key={order.id}>
                 <td>#{order.id}</td>
                 <td>{formatDate(order.createdAt || new Date())}</td>
-                <td>{(order.total || order.totalPrice || 0).toLocaleString('vi-VN')}đ</td>
+                <td>{(order.totalAmount || 0).toLocaleString('vi-VN')}đ</td>
                 <td>
                   {order.isPaid ? (
                     <Badge bg="success">Đã thanh toán</Badge>

@@ -330,7 +330,7 @@ const createMomoPayment = async (req, res) => {
     const momoOrderId = `${orderId}_${Date.now()}`; // Ensure unique orderId
     const orderDescription = sanitizeMomoParam(orderInfo || `Thanh toán đơn hàng #${orderId}`);
     const extraData = '';
-    const redirectUrl = `${momoConfig.redirectUrl}/${orderId}`;
+    const redirectUrl = `http://localhost:3000/order/${orderId}`;
 
     // IMPORTANT: When generating signature for MoMo, do NOT encode values
     // Create signature with raw values as MoMo requires

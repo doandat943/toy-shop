@@ -111,7 +111,7 @@ const createOrder = async (req, res) => {
       itemsPrice,
       shippingPrice,
       discount,
-      total,
+      totalPrice,
       promoCode,
       requestVAT,
       vatInfo
@@ -126,6 +126,14 @@ const createOrder = async (req, res) => {
       });
     }
 
+    // Ensure totalAmount is properly calculated and stored
+    const calculatedTotalAmount = parseFloat(itemsPrice || 0) + 
+                               parseFloat(shippingPrice || 0) - 
+                               parseFloat(discount || 0);
+    
+    // Use the calculated total or the passed totalPrice
+    const finalTotalAmount = totalPrice || calculatedTotalAmount;
+
     // Create order
     const order = await Order.create({
       userId: req.user.id,
@@ -139,9 +147,9 @@ const createOrder = async (req, res) => {
       paymentMethod,
       subTotal: itemsPrice,
       shippingCost: shippingPrice,
-      discount,
-      totalAmount: total,
-      notes: shippingAddress.notes || '',
+      discount: discount || 0,
+      totalAmount: finalTotalAmount,
+      notes: shippingAddress.note || '',
       status: 'pending',
       vatInvoice: requestVAT || false,
       vatInvoiceInfo: requestVAT && vatInfo ? JSON.stringify(vatInfo) : null
@@ -413,7 +421,7 @@ const getMyOrders = async (req, res) => {
 const getOrderStats = async (req, res) => {
   try {
     // Total sales
-    const totalSales = await Order.sum('total', {
+    const totalSales = await Order.sum('totalAmount', {
       where: { status: { [Op.ne]: 'cancelled' } }
     });
 
@@ -437,7 +445,7 @@ const getOrderStats = async (req, res) => {
     });
 
     // Sales this month
-    const salesThisMonth = await Order.sum('total', {
+    const salesThisMonth = await Order.sum('totalAmount', {
       where: {
         createdAt: { [Op.gte]: firstDayOfMonth },
         status: { [Op.ne]: 'cancelled' }

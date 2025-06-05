@@ -5,7 +5,7 @@ const seedCategories = require('./categories');
 const seedProducts = require('./products');
 const seedPromos = require('./promocodes');
 const seedBlogs = require('./blogs');
-// const seedOrders = require('./orders');
+const seedOrders = require('./orders');
 // const seedReviews = require('./reviews');
 
 // Load environment variables with specific path
@@ -47,8 +47,8 @@ const seedAll = async () => {
     console.log('\n=== Seeding Blog Content ===');
     await seedBlogs();
     
-    // console.log('\n=== Seeding Orders ===');
-    // await seedOrders();
+    console.log('\n=== Seeding Orders ===');
+    await seedOrders();
     
     // console.log('\n=== Seeding Reviews ===');
     // await seedReviews();

@@ -9,7 +9,11 @@ import MoMoPayment from '../components/MoMoPayment';
 const OrderPage = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const { userInfo } = useSelector((state) => state.auth);
+  
+  // Sử dụng cả hai redux state để tránh lỗi khi trang được nạp
+  const { userInfo: authUserInfo } = useSelector((state) => state.auth);
+  const { user: userUserInfo } = useSelector((state) => state.user);
+  const userInfo = authUserInfo || userUserInfo;
   
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,23 +25,56 @@ const OrderPage = () => {
   const [showRetryMomo, setShowRetryMomo] = useState(false);
   const [verificationInterval, setVerificationInterval] = useState(null);
 
+  // Kiểm tra tham số redirect từ MoMo
+  const momoResultCode = searchParams.get('resultCode');
+  const momoSuccess = momoResultCode === '0';
+
   useEffect(() => {
     const getOrderDetails = async () => {
       try {
+        setLoading(true);
+        
+        // Lấy token từ localStorage nếu không có userInfo
+        let token = userInfo?.token;
+        if (!token) {
+          const storedUser = localStorage.getItem('user');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            token = parsedUser.token;
+          }
+        }
+        
+        if (!token) {
+          setError('Không thể xác thực người dùng. Vui lòng đăng nhập lại.');
+          setLoading(false);
+          return;
+        }
+
         const config = {
           headers: {
-            Authorization: `Bearer ${userInfo.token}`,
+            Authorization: `Bearer ${token}`,
           },
         };
 
         const { data } = await axios.get(`/api/orders/${id}`, config);
         setOrder(data.data);
         
+        // Nếu đơn hàng thanh toán qua MoMo và có param resultCode=0, xử lý như thành công
+        if (data.data.paymentMethod === 'momo' && momoSuccess && !data.data.isPaid) {
+          console.log('MoMo payment successful, updating order');
+          setOrder({
+            ...data.data,
+            isPaid: true,
+            paidAt: new Date().toISOString(),
+          });
+        }
+        
         // If order has stripe payment method and is not paid, check payment status
         if (data.data.paymentMethod === 'stripe' && !data.data.isPaid) {
           checkPaymentStatus();
         }
       } catch (error) {
+        console.error('Error fetching order:', error);
         setError(
           error.response && error.response.data.message
             ? error.response.data.message
@@ -58,11 +95,12 @@ const OrderPage = () => {
       }
     };
 
-    if (userInfo && id) {
+    // Luôn thực hiện getOrderDetails nếu có id, không phụ thuộc vào userInfo
+    if (id) {
       getOrderDetails();
       getPaymentMethods();
     }
-  }, [userInfo, id, paymentSuccess]);
+  }, [id, momoSuccess]);
 
   const checkPaymentStatus = async () => {
     if (!userInfo || !id) return;
