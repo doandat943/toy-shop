@@ -9,7 +9,8 @@ const {
   getBlogsByCategory,
   getFeaturedBlogs,
   getRecentBlogs,
-  getRelatedBlogPosts
+  getRelatedBlogPosts,
+  getBlogCategories
 } = require('../controllers/blogController');
 const { protect, admin } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -38,6 +39,11 @@ router.get('/category/:categoryId', getBlogsByCategory);
 // @desc    Get blog posts related to a product or category
 // @access  Public
 router.get('/related', getRelatedBlogPosts);
+
+// @route   GET /api/blog/categories
+// @desc    Get all blog categories
+// @access  Public
+router.get('/categories', getBlogCategories);
 
 // @route   POST /api/blog
 // @desc    Create a new blog

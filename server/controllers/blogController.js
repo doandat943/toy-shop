@@ -405,6 +405,29 @@ const getRelatedBlogPosts = async (req, res) => {
   }
 };
 
+// @desc    Get all blog categories
+// @route   GET /api/blog/categories
+// @access  Public
+const getBlogCategories = async (req, res) => {
+  try {
+    const categories = await BlogCategory.findAll({
+      where: { isActive: true },
+      order: [['displayOrder', 'ASC'], ['name', 'ASC']]
+    });
+
+    res.json({
+      success: true,
+      categories: categories
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getBlogs,
   getBlogById,
@@ -414,5 +437,6 @@ module.exports = {
   getBlogsByCategory,
   getFeaturedBlogs,
   getRecentBlogs,
-  getRelatedBlogPosts
+  getRelatedBlogPosts,
+  getBlogCategories
 }; 
