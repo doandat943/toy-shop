@@ -129,19 +129,19 @@ const createOrder = async (req, res) => {
     // Create order
     const order = await Order.create({
       userId: req.user.id,
-      shippingAddress: JSON.stringify(shippingAddress),
-      city: shippingAddress.city,
-      district: shippingAddress.district,
-      ward: shippingAddress.ward,
-      customerName: shippingAddress.fullName,
+      shippingAddress: JSON.stringify(shippingAddress || {}),
+      city: shippingAddress?.city || '',
+      district: shippingAddress?.district || '',
+      ward: shippingAddress?.ward || '',
+      customerName: shippingAddress?.fullName || '',
       customerEmail: req.user.email,
-      customerPhone: shippingAddress.phone,
+      customerPhone: shippingAddress?.phone || '',
       paymentMethod,
       subTotal: itemsPrice,
       shippingCost: shippingPrice,
       discount,
       totalAmount: total,
-      notes: shippingAddress.notes || '',
+      notes: shippingAddress?.notes || '',
       status: 'pending',
       vatInvoice: requestVAT || false,
       vatInvoiceInfo: requestVAT && vatInfo ? JSON.stringify(vatInfo) : null
@@ -157,7 +157,7 @@ const createOrder = async (req, res) => {
         // Create order item
         const orderItem = await OrderItem.create({
           orderId: order.id,
-          productId: item.product,
+          productId: item.id,
           name: item.name,
           price: itemPrice,
           quantity: itemQty,

@@ -1,149 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Container, Row, Col, Form, Button, Card, ListGroup, Alert, Image, Accordion, Tab, Nav } from 'react-bootstrap';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Container, Row, Col, Form, Button, Card, ListGroup, Alert, Image, Spinner } from 'react-bootstrap';
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { clearCart } from '../slices/cartSlice';
-import { FaCreditCard, FaMoneyBill, FaUniversity, FaQrcode } from 'react-icons/fa';
+import { FaMoneyBill, FaPaypal } from 'react-icons/fa';
 import axios from 'axios';
-
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
-
-// Payment Form Component using Stripe
-const PaymentForm = ({ orderInfo, onPaymentSuccess, onPaymentError }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentError, setPaymentError] = useState(null);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!stripe || !elements) {
-      return;
-    }
-
-    setIsProcessing(true);
-    setPaymentError(null);
-
-    try {
-      // Create payment intent on server
-      const { data } = await axios.post('/api/payment/create-payment-intent', {
-        orderId: orderInfo.orderId,
-        total: orderInfo.total,
-        paymentMethod: 'stripe'
-      });
-
-      // Confirm payment with Stripe
-      const result = await stripe.confirmCardPayment(data.clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement),
-          billing_details: {
-            name: orderInfo.shippingAddress.fullName,
-            email: orderInfo.email
-          }
-        }
-      });
-
-      if (result.error) {
-        setPaymentError(result.error.message);
-        onPaymentError(result.error.message);
-      } else if (result.paymentIntent.status === 'succeeded') {
-        onPaymentSuccess(result.paymentIntent);
-      }
-    } catch (error) {
-      setPaymentError(error.response?.data?.message || 'Có lỗi xảy ra khi xử lý thanh toán');
-      onPaymentError(error.response?.data?.message || 'Có lỗi xảy ra khi xử lý thanh toán');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <Form onSubmit={handleSubmit}>
-      <Form.Group className="mb-3">
-        <Form.Label>Thông tin thẻ</Form.Label>
-        <div className="border rounded p-3">
-          <CardElement options={{
-            style: {
-              base: {
-                fontSize: '16px',
-                color: '#424770',
-                '::placeholder': {
-                  color: '#aab7c4',
-                },
-              },
-              invalid: {
-                color: '#9e2146',
-              },
-            },
-          }} />
-        </div>
-      </Form.Group>
-      
-      {paymentError && <Alert variant="danger">{paymentError}</Alert>}
-      
-      <Button 
-        variant="primary" 
-        type="submit" 
-        className="w-100" 
-        disabled={!stripe || isProcessing}
-      >
-        {isProcessing ? 'Đang xử lý...' : 'Thanh toán'}
-      </Button>
-    </Form>
-  );
-};
-
-// Bank Transfer Payment Method Component
-const BankTransferPayment = ({ bankInfo }) => {
-  return (
-    <div className="p-3">
-      <h5>Thông tin chuyển khoản</h5>
-      <ListGroup variant="flush" className="border rounded mb-3">
-        <ListGroup.Item>
-          <strong>Ngân hàng:</strong> {bankInfo.bankName}
-        </ListGroup.Item>
-        <ListGroup.Item>
-          <strong>Số tài khoản:</strong> {bankInfo.accountNumber}
-        </ListGroup.Item>
-        <ListGroup.Item>
-          <strong>Chủ tài khoản:</strong> {bankInfo.accountName}
-        </ListGroup.Item>
-        <ListGroup.Item>
-          <strong>Chi nhánh:</strong> {bankInfo.branch}
-        </ListGroup.Item>
-      </ListGroup>
-      <Alert variant="info">
-        <p className="mb-0">
-          <strong>Hướng dẫn:</strong> Vui lòng chuyển khoản với nội dung: <strong>BABYBON [Mã đơn hàng]</strong>
-        </p>
-        <p className="mb-0 mt-2">
-          Đơn hàng của bạn sẽ được xử lý sau khi chúng tôi nhận được thanh toán.
-        </p>
-      </Alert>
-    </div>
-  );
-};
-
-// QR Code Payment Method Component
-const QRCodePayment = ({ method }) => {
-  return (
-    <div className="p-3 text-center">
-      <h5>{method.name}</h5>
-      <div className="my-4">
-        {method.qrCode && (
-          <Image src={method.qrCode} alt={`${method.name} QR Code`} style={{ maxWidth: '250px' }} className="border p-2" />
-        )}
-      </div>
-      <Alert variant="info" className="text-start">
-        <strong>Hướng dẫn:</strong>
-        <p className="mb-0 mt-2">{method.instructions}</p>
-      </Alert>
-    </div>
-  );
-};
 
 // COD Payment Method Component
 const CODPayment = () => {
@@ -162,19 +24,124 @@ const CODPayment = () => {
   );
 };
 
+// PayPal Payment Method Component
+const PayPalPayment = ({ orderInfo, onPaymentSuccess, onPaymentError, orderPlaced }) => {
+  const [paypalLoading, setPaypalLoading] = useState(true);
+  const [paypalError, setPaypalError] = useState(null);
+
+  // Options cho PayPalScriptProvider. Client ID lấy từ .env
+  const initialOptions = {
+    clientId: process.env.REACT_APP_PAYPAL_CLIENT_ID,
+    currency: "USD", // Cần khớp với đơn vị tiền tệ gửi lên backend
+    intent: "capture",
+  };
+
+  if (!orderPlaced || !orderInfo) {
+    return null;
+  }
+
+  return (
+    <div className="p-3">
+       {/* Loading Spinner cho PayPal SDK (tùy chọn) */}
+       {paypalLoading && <div className="text-center"><Spinner animation="border" size="sm" /> Đang tải PayPal...</div>}
+       {paypalError && <Alert variant="danger">{paypalError}</Alert>}
+
+       {/* PayPalScriptProvider bao quanh PayPalButtons */}
+       <PayPalScriptProvider options={initialOptions} onError={(err) => {
+         console.error("Failed to load PayPal SDK script", err);
+         setPaypalError("Không thể tải PayPal. Vui lòng thử lại sau.");
+         setPaypalLoading(false);
+       }} onLoad={() => setPaypalLoading(false)}>
+
+        <PayPalButtons
+          style={{ layout: "vertical" }}
+          // Hàm tạo đơn hàng trên server của mình
+          createOrder={async (data, actions) => {
+            try {
+              // Gọi API backend để tạo đơn hàng PayPal
+              const res = await axios.post('/api/payment/paypal/order', {
+                orderId: orderInfo.id, // Sử dụng orderInfo.id (order ID từ backend)
+              });
+
+              if (res.data.success && res.data.orderID) {
+                 setPaypalError(null);
+                 return res.data.orderID; // Trả về PayPal Order ID từ backend
+              } else {
+                 throw new Error(res.data.message || 'Failed to create PayPal order');
+              }
+            } catch (error) {
+              console.error("Error creating PayPal order:", error.response?.data || error.message);
+              setPaypalError(error.response?.data?.message || 'Lỗi tạo đơn hàng PayPal. Vui lòng thử lại.');
+              throw error; // Rethrow để PayPal Buttons biết có lỗi
+            }
+          }}
+          // Hàm xử lý khi thanh toán thành công trên cửa sổ PayPal
+          onApprove={async (data, actions) => {
+            try {
+              // Capture payment trên server của mình
+              const res = await axios.post('/api/payment/paypal/capture', {
+                orderID: data.orderID, // PayPal Order ID
+                ourOrderId: orderInfo.id, // Order ID của mình
+              });
+
+              if (res.data.success) {
+                onPaymentSuccess(res.data.captureData); // Truyền dữ liệu capture về component cha
+              } else {
+                 throw new Error(res.data.message || 'Failed to capture PayPal payment');
+              }
+            } catch (error) {
+              console.error("Error capturing PayPal payment:", error.response?.data || error.message);
+              setPaypalError(error.response?.data?.message || 'Lỗi xử lý thanh toán PayPal sau khi chấp thuận.');
+              onPaymentError(error.response?.data?.message || 'Lỗi xử lý thanh toán PayPal sau khi chấp thuận.');
+              throw error; // Rethrow để PayPal Buttons biết có lỗi
+            }
+          }}
+          // Hàm xử lý khi có lỗi trong quá trình tương tác với PayPal (trước khi Approve)
+          onError={(err) => {
+            console.error("PayPal onError:", err);
+            setPaypalError("Đã xảy ra lỗi trong quá trình thanh toán PayPal.");
+            onPaymentError(err.message || "Đã xảy ra lỗi trong quá trình thanh toán PayPal.");
+          }}
+          // Hàm xử lý khi người dùng hủy thanh toán trên cửa sổ PayPal
+          onCancel={(data) => {
+             console.log('PayPal payment cancelled', data);
+             setPaypalError('Bạn đã hủy thanh toán PayPal.');
+             onPaymentError('Thanh toán PayPal đã bị hủy.');
+          }}
+        />
+      </PayPalScriptProvider>
+    </div>
+  );
+};
+
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { cartItems, shippingAddress } = useSelector((state) => state.cart);
   const { userInfo } = useSelector((state) => state.auth);
-  
+
+  console.log('PayPal Client ID from env:', process.env.REACT_APP_PAYPAL_CLIENT_ID);
+
+  // State để lưu thông tin địa chỉ giao hàng nhập trực tiếp trên trang Checkout
+  const [localShippingAddress, setLocalShippingAddress] = useState({
+    address: '',
+    city: '',
+    postalCode: '',
+    country: '',
+    name: '', // Thêm trường tên người nhận
+    phone: '' // Thêm trường số điện thoại
+  });
+
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [promoError, setPromoError] = useState('');
   const [promoSuccess, setPromoSuccess] = useState('');
-  const [availablePaymentMethods, setAvailablePaymentMethods] = useState([]);
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState([
+    { id: 'cod', name: 'Thanh toán khi nhận hàng (COD)', enabled: true },
+    { id: 'paypal', name: 'PayPal', enabled: process.env.REACT_APP_PAYPAL_CLIENT_ID ? true : false }
+  ]);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderInfo, setOrderInfo] = useState(null);
   const [issueVATInvoice, setIssueVATInvoice] = useState(false);
@@ -184,35 +151,37 @@ const CheckoutPage = () => {
     address: '',
     email: ''
   });
+  console.log('cartItems state:', cartItems);
+
+  const [pageAlert, setPageAlert] = useState(null);
+  const [pageAlertVariant, setPageAlertVariant] = useState('danger'); // default variant
 
   // Calculate prices
   const itemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const shippingPrice = itemsPrice > 500000 ? 0 : 30000;
+  const shippingPrice = 30000; // Cố định tiền ship 30k theo yêu cầu
   const totalPrice = itemsPrice + shippingPrice - discount;
 
+  // TẠM THỜI VÔ HIỆU HÓA HOOK useEffect CHUYỂN HƯỚNG ĐỂ DEBUG
+  // TRONG ỨNG DỤNG THỰC TẾ CẦN CÓ LOGIC KIỂM TRA GIỎ HÀNG VÀ ĐĂNG NHẬP
+  /*
   useEffect(() => {
-    // Redirect to login if not logged in
+    console.log('CheckoutPage useEffect running');
+    console.log('cartItems:', cartItems);
+    console.log('userInfo:', userInfo);
+    // Không còn kiểm tra shippingAddress ở đây nữa
+    if (!cartItems || cartItems.length === 0) {
+        console.log('Redirecting to /cart');
+        navigate('/cart');
+        return;
+    }
     if (!userInfo) {
+      console.log('Redirecting to /login');
       navigate('/login?redirect=checkout');
+      return;
     }
-    
-    // Redirect to shipping if no shipping address
-    if (!shippingAddress || !shippingAddress.address) {
-      navigate('/shipping');
-    }
-    
-    // Get available payment methods
-    const getPaymentMethods = async () => {
-      try {
-        const { data } = await axios.get('/api/payment/methods');
-        setAvailablePaymentMethods(data.data || []);
-      } catch (error) {
-        console.error('Error fetching payment methods:', error);
-      }
-    };
-    
-    getPaymentMethods();
-  }, [userInfo, shippingAddress, navigate]);
+
+  }, [userInfo, shippingAddress, navigate, cartItems]);
+  */
 
   const validatePromoCode = async () => {
     if (!promoCode.trim()) return;
@@ -248,118 +217,129 @@ const CheckoutPage = () => {
   };
 
   const placeOrderHandler = async () => {
+    // Bỏ kiểm tra địa chỉ ở đây theo yêu cầu
+    if (cartItems.length === 0) {
+        setPageAlert("Giỏ hàng trống. Vui lòng thêm sản phẩm.");
+        setPageAlertVariant('warning');
+        return;
+    }
+
     try {
       const { data } = await axios.post('/api/orders', {
         orderItems: cartItems.map(item => ({
-          product: item.product,
+          product: item.id,
           name: item.name,
           qty: item.qty,
           image: item.image,
-          price: item.price
+          price: item.price,
         })),
-        shippingAddress,
-        paymentMethod,
-        itemsPrice,
-        shippingPrice,
-        discount,
-        total: totalPrice,
-        promoCode: promoSuccess ? promoCode : null,
-        requestVAT: issueVATInvoice,
-        vatInfo: issueVATInvoice ? vatInfo : null
+        // shippingAddress sẽ được thêm sau, hoặc gửi rỗng/null nếu API cho phép
+        shippingAddress: {}, // Gửi object rỗng tạm thời, cần API backend hỗ trợ
+        paymentMethod: paymentMethod,
+        itemsPrice: itemsPrice,
+        shippingPrice: shippingPrice,
+        discount: discount,
+        totalPrice: totalPrice,
+        vatInvoice: issueVATInvoice,
+        vatInvoiceInfo: issueVATInvoice ? vatInfo : null,
       });
-      
+
+      setOrderInfo(data.data);
       setOrderPlaced(true);
-      setOrderInfo({
-        orderId: data.order.id,
-        total: totalPrice,
-        email: userInfo.email,
-        shippingAddress
-      });
-      
-      // Clear cart if not using stripe
-      if (paymentMethod !== 'stripe') {
-        dispatch(clearCart());
-        navigate(`/order/${data.order.id}`);
-      }
+
+      dispatch(clearCart());
+      navigate(`/order/${data.data.id}`);
+
     } catch (error) {
-      console.error('Error placing order:', error);
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi đặt hàng');
+      console.error('Error placing order:', error.response?.data || error.message);
+      console.error('Error placing order - response data:', error.response?.data);
+      console.error('Error placing order - message:', error.message);
+      console.error('Full error object:', error);
+      setPageAlert(error.response?.data?.message || 'Có lỗi xảy ra khi đặt đơn hàng.');
+      setPageAlertVariant('danger');
+      
     }
   };
 
-  const handlePaymentSuccess = (paymentIntent) => {
-    console.log('Payment successful:', paymentIntent);
-    dispatch(clearCart());
-    navigate(`/order/${orderInfo.orderId}`);
+  const handlePaymentSuccess = (paymentDetails) => {
+     console.log('Payment successful!', paymentDetails);
+     dispatch(clearCart());
+     navigate(`/order/${orderInfo.id}?payment=success`);
   };
 
   const handlePaymentError = (errorMessage) => {
-    console.error('Payment error:', errorMessage);
+    console.error('Payment failed or cancelled:', errorMessage);
+    setPageAlert(`Thanh toán thất bại: ${errorMessage}`);
+    setPageAlertVariant('danger');
   };
 
-  // Render payment method selection tabs
-  const renderPaymentMethodTabs = () => {
+  const renderPaymentMethodOptions = () => {
+    const methodsToRender = availablePaymentMethods.filter(method => 
+        method.id === 'cod' || (method.id === 'paypal' && method.enabled)
+    );
+
     return (
-      <Tab.Container id="payment-methods-tabs" defaultActiveKey={paymentMethod}>
-        <Nav variant="pills" className="mb-3 flex-column flex-sm-row">
-          {availablePaymentMethods.map((method) => (
-            method.enabled && (
-              <Nav.Item key={method.id} className="mb-2 mb-sm-0 me-sm-2">
-                <Nav.Link 
-                  eventKey={method.id}
-                  onClick={() => setPaymentMethod(method.id)}
-                  className="d-flex align-items-center"
-                >
+       <Form.Group>
+          <Form.Label as="h6">Chọn phương thức thanh toán</Form.Label>
+          {methodsToRender.map((method) => (
+            <Form.Check
+              key={method.id}
+              type="radio"
+              id={`paymentMethod${method.id}`}
+              label={
+                <>
                   {method.id === 'cod' && <FaMoneyBill className="me-2" />}
-                  {method.id === 'bank_transfer' && <FaUniversity className="me-2" />}
-                  {(method.id === 'momo' || method.id === 'zalopay') && <FaQrcode className="me-2" />}
-                  {method.id === 'stripe' && <FaCreditCard className="me-2" />}
+                  {method.id === 'paypal' && <FaPaypal className="me-2" />}
                   {method.name}
-                </Nav.Link>
-              </Nav.Item>
-            )
+                </>
+              }
+              value={method.id}
+              checked={paymentMethod === method.id}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="mb-2"
+            />
           ))}
-        </Nav>
-        
-        <Tab.Content>
-          {availablePaymentMethods.map((method) => (
-            method.enabled && (
-              <Tab.Pane key={method.id} eventKey={method.id}>
-                {method.id === 'cod' && <CODPayment />}
-                {method.id === 'bank_transfer' && <BankTransferPayment bankInfo={method.bankInfo} />}
-                {(method.id === 'momo' || method.id === 'zalopay') && <QRCodePayment method={method} />}
-                {method.id === 'stripe' && orderPlaced && (
-                  <Elements stripe={stripePromise}>
-                    <PaymentForm 
-                      orderInfo={orderInfo} 
-                      onPaymentSuccess={handlePaymentSuccess}
-                      onPaymentError={handlePaymentError}
-                    />
-                  </Elements>
-                )}
-              </Tab.Pane>
-            )
-          ))}
-        </Tab.Content>
-      </Tab.Container>
+        </Form.Group>
     );
   };
 
+  // TẠM THỜI BỎ QUA KIỂM TRA ĐIỀU KIỆN RENDER ĐỂ TEST CHUYỂN TRANG
+  // TRONG ỨNG DỤNG THỰC TẾ CẦN CÓ CÁC KIỂM TRA NÀY
+
   return (
-    <Container>
-      <h1 className="my-4">Thanh toán</h1>
-      
+    <Container className="my-4">
       <Row>
         <Col md={8}>
-          {/* Payment Step */}
+          {/* Hiển thị thông báo lỗi hoặc cảnh báo */}
+          {pageAlert && (
+            <Alert variant={pageAlertVariant} onClose={() => setPageAlert(null)} dismissible>
+              {pageAlert}
+            </Alert>
+          )}
+
+          <h2>Thanh toán</h2>
+
+          {/* Phần phương thức thanh toán */}
           <Card className="mb-4">
             <Card.Header as="h5">Phương thức thanh toán</Card.Header>
             <Card.Body>
-              {renderPaymentMethodTabs()}
+              {renderPaymentMethodOptions()}
+
+              {paymentMethod === 'cod' && <CODPayment />}
+              {paymentMethod === 'paypal' && orderPlaced && orderInfo && (
+                  <PayPalPayment
+                      orderInfo={orderInfo}
+                      onPaymentSuccess={handlePaymentSuccess}
+                      onPaymentError={handlePaymentError}
+                      orderPlaced={orderPlaced}
+                  />
+              )}
+               {paymentMethod === 'paypal' && !orderPlaced && (
+                <Alert variant="info">Vui lòng nhấn nút "Đặt đơn hàng" bên phải để chuẩn bị thanh toán với PayPal.</Alert>
+               )}
             </Card.Body>
           </Card>
 
-          {/* VAT Invoice Information */}
           <Card className="mb-4">
             <Card.Header as="h5">Thông tin hóa đơn VAT</Card.Header>
             <Card.Body>
@@ -486,6 +466,7 @@ const CheckoutPage = () => {
                       placeholder="Nhập mã giảm giá" 
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
+                      disabled={isValidatingCode || !promoCode.trim()}
                     />
                     <Button 
                       variant="outline-primary" 
@@ -502,15 +483,16 @@ const CheckoutPage = () => {
               </ListGroup.Item>
               
               <ListGroup.Item>
-                <Button 
-                  type="button" 
-                  variant="primary" 
-                  className="w-100"
-                  onClick={placeOrderHandler}
-                  disabled={cartItems.length === 0 || orderPlaced || (issueVATInvoice && (!vatInfo.companyName || !vatInfo.taxCode))}
-                >
-                  {orderPlaced && paymentMethod === 'stripe' ? 'Tiến hành thanh toán' : 'Đặt hàng'}
-                </Button>
+                {(!orderPlaced || paymentMethod === 'cod') && (
+                   <Button
+                     type="button"
+                     className="btn w-100"
+                     disabled={cartItems.length === 0 || (issueVATInvoice && (!vatInfo.companyName || !vatInfo.taxCode))}
+                     onClick={placeOrderHandler}
+                   >
+                     Đặt đơn hàng
+                   </Button>
+                 )}
               </ListGroup.Item>
             </ListGroup>
           </Card>

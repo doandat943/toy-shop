@@ -38,15 +38,60 @@ import AdminLayout from './components/layout/AdminLayout';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
+// Layout component for client-facing pages
+const ClientLayout = () => (
+  <>
+    <Header />
+    <main className="py-3">
+      <Container>
+        <Routes> {/* Nested Routes for client-facing pages */}
+          {/* Public Routes */}
+          <Route index element={<HomePage />} /> {/* Trang chủ */}
+          <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/cart/:id" element={<CartPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+
+          {/* Protected Routes - Requires Authentication */}
+          <Route element={<PrivateRoute />}>
+            <Route path="/shipping" element={<ShippingPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/order/:id" element={<OrderPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Route>
+
+          {/* Special features */}
+          <Route path="/gift-finder" element={<BirthdayGiftFinderPage />} />
+          <Route path="/promotions" element={<PromotionalCalendarPage />} />
+
+          {/* Blog pages */}
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:id" element={<BlogDetailPage />} />
+
+          {/* Wishlist page */}
+          <Route path="/wishlist" element={<WishlistPage />} />
+
+          {/* Catch-all for 404 - optional */}
+          {/* <Route path="*" element={<NotFoundPage />} /> */}
+        </Routes>
+      </Container>
+    </main>
+    <Footer />
+  </>
+);
+
 const App = () => {
   return (
     <Router>
       <Routes>
         {/* Admin Routes with Admin Layout */}
-        <Route element={<AdminRoute />}>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="/admin" element={<AdminRoute />}>
+          <Route element={<AdminLayout />}> {/* Use AdminLayout as a layout route */}
+            <Route index element={<DashboardPage />} /> {/* /admin */}
+            <Route path="dashboard" element={<DashboardPage />} /> {/* /admin/dashboard */}
             <Route path="orders" element={<OrdersListPage />} />
             <Route path="orders/:id" element={<OrderDetailPage />} />
             <Route path="products" element={<ProductsListPage />} />
@@ -58,50 +103,13 @@ const App = () => {
           </Route>
         </Route>
 
-        {/* Client-facing Routes with normal layout */}
-        <Route
-          path="*"
-          element={
-            <>
-              <Header />
-              <main className="py-3">
-                <Container>
-                  <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/product/:id" element={<ProductPage />} />
-                    <Route path="/products" element={<ProductsPage />} />
-                    <Route path="/cart" element={<CartPage />} />
-                    <Route path="/cart/:id" element={<CartPage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/register" element={<RegisterPage />} />
-                    
-                    {/* Protected Routes - Requires Authentication */}
-                    <Route element={<PrivateRoute />}>
-                      <Route path="/shipping" element={<ShippingPage />} />
-                      <Route path="/checkout" element={<CheckoutPage />} />
-                      <Route path="/order/:id" element={<OrderPage />} />
-                      <Route path="/orders" element={<OrdersPage />} />
-                      <Route path="/profile" element={<ProfilePage />} />
-                    </Route>
+        {/* Client-facing Routes using ClientLayout */}
+        {/* Define a route that matches all paths NOT starting with /admin */}
+        <Route path="/*" element={<ClientLayout />} /> {/* This will match all paths except those handled by /admin */}
 
-                    {/* Special features */}
-                    <Route path="/gift-finder" element={<BirthdayGiftFinderPage />} />
-                    <Route path="/promotions" element={<PromotionalCalendarPage />} />
+        {/* Optionally, a final catch-all for paths not matched by anything */}
+        {/* <Route path="*" element={<FinalNotFoundPage />} /> */}
 
-                    {/* Blog pages */}
-                    <Route path="/blog" element={<BlogPage />} />
-                    <Route path="/blog/:id" element={<BlogDetailPage />} />
-
-                    {/* Wishlist page */}
-                    <Route path="/wishlist" element={<WishlistPage />} />
-                  </Routes>
-                </Container>
-              </main>
-              <Footer />
-            </>
-          }
-        />
       </Routes>
     </Router>
   );

@@ -27,7 +27,7 @@ const CartPage = () => {
   };
 
   const checkoutHandler = () => {
-    navigate('/login?redirect=shipping');
+    navigate('/checkout');
   };
 
   const updateQtyHandler = (id, qty) => {

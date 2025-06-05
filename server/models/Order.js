@@ -69,7 +69,7 @@ const Order = sequelize.define('Order', {
     type: DataTypes.STRING
   },
   paymentMethod: {
-    type: DataTypes.ENUM('cod', 'bank_transfer', 'credit_card', 'qr_code'),
+    type: DataTypes.ENUM('cod', 'paypal'),
     defaultValue: 'cod'
   },
   paymentStatus: {
