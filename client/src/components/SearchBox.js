@@ -18,17 +18,17 @@ const SearchBox = () => {
   };
 
   return (
-    <Form onSubmit={submitHandler} className="d-flex mx-auto">
+    <Form onSubmit={submitHandler} className="d-flex searchbox-form">
       <Form.Control
         type="text"
         name="q"
         onChange={(e) => setKeyword(e.target.value)}
         placeholder="Tìm kiếm sản phẩm..."
         value={keyword}
-        className="mr-sm-2 ml-sm-5 rounded-0 rounded-start"
+        className="mr-sm-2 ml-sm-5 searchbox-input"
       />
-      <Button type="submit" variant="outline-light" className="p-2 rounded-0 rounded-end">
-        <FaSearch />
+      <Button type="submit" className="p-2 searchbox-button">
+        <FaSearch style={{ fontSize: '1rem' }} />
       </Button>
     </Form>
   );

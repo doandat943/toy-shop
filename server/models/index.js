@@ -7,6 +7,7 @@ const Review = require('./Review');
 const Blog = require('./Blog');
 const BlogCategory = require('./BlogCategory');
 const PromoCode = require('./PromoCode');
+const CarouselItem = require('./CarouselItem');
 const sequelize = require('../config/db');
 const { DataTypes } = require('sequelize');
 
@@ -135,5 +136,6 @@ module.exports = {
   PromoCode,
   Wishlist,
   Point,
+  CarouselItem,
   sequelize
 }; 

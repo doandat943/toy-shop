@@ -12,6 +12,7 @@ import orderReducer from './slices/orderSlice';
 import paymentReducer from './slices/paymentSlice';
 import promotionReducer from './slices/promotionSlice';
 import dashboardReducer from './slices/dashboardSlice';
+import carouselReducer from './slices/carouselSlice';
 
 // Combine reducers
 const rootReducer = combineReducers({
@@ -26,6 +27,7 @@ const rootReducer = combineReducers({
   promotion: promotionReducer,
   dashboard: dashboardReducer,
   auth: userReducer, // Map auth to userReducer for compatibility with our component names
+  carousel: carouselReducer
 });
 
 // Create store

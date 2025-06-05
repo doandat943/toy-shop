@@ -55,6 +55,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/blog', require('./routes/blog'));
 app.use('/api/uploads', require('./routes/uploads'));
+app.use('/api/carousel', require('./routes/carousel'));
 
 // API routes for payment, promotion, and dashboard
 app.use('/api/payment', require('./routes/payment'));

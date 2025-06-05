@@ -29,6 +29,7 @@ import ProductsListPage from './pages/admin/ProductsListPage';
 import ProductFormPage from './pages/admin/ProductFormPage';
 import PromotionsPage from './pages/admin/PromotionsPage';
 import CustomersListPage from './pages/admin/CustomersListPage';
+import CarouselManagementPage from './pages/admin/CarouselManagementPage';
 
 // Layouts
 import AdminLayout from './components/layout/AdminLayout';
@@ -43,6 +44,7 @@ const App = () => {
         {/* Admin Routes with Admin Layout */}
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<DashboardPage />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="orders" element={<OrdersListPage />} />
             <Route path="orders/:id" element={<OrderDetailPage />} />
@@ -51,6 +53,7 @@ const App = () => {
             <Route path="products/edit/:id" element={<ProductFormPage />} />
             <Route path="promotions" element={<PromotionsPage />} />
             <Route path="customers" element={<CustomersListPage />} />
+            <Route path="carousel" element={<CarouselManagementPage />} />
           </Route>
         </Route>
 

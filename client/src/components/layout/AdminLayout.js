@@ -2,14 +2,16 @@ import React from 'react';
 import { Container, Row, Col, Nav } from 'react-bootstrap';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { FaChartBar, FaShoppingCart, FaBoxOpen, FaTag, FaUsers, FaHome, FaSignOutAlt } from 'react-icons/fa';
+import { FaChartBar, FaShoppingCart, FaBoxOpen, FaTag, FaUsers, FaHome, FaSignOutAlt, FaImages } from 'react-icons/fa';
 
 const AdminLayout = () => {
   const location = useLocation();
   const { user } = useSelector((state) => state.user);
   
   const isActive = (path) => {
-    return location.pathname === `/admin/${path}` ? 'active' : '';
+    const currentPath = location.pathname.endsWith('/') ? location.pathname.slice(0, -1) : location.pathname;
+    const targetPath = `/admin/${path}`.endsWith('/') ? `/admin/${path}`.slice(0, -1) : `/admin/${path}`;
+    return currentPath === targetPath;
   };
 
   return (
@@ -71,6 +73,13 @@ const AdminLayout = () => {
                 className={`py-3 border-bottom ${isActive('promotions')}`}
               >
                 <FaTag className="me-2" /> Khuyến mãi
+              </Nav.Link>
+              <Nav.Link 
+                as={Link} 
+                to="/admin/carousel" 
+                className={`py-3 border-bottom ${isActive('carousel')}`}
+              >
+                <FaImages className="me-2" /> Quản lý Carousel
               </Nav.Link>
               <Nav.Link 
                 as={Link} 

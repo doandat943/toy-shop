@@ -6,6 +6,7 @@ import { fetchProducts } from '../slices/productSlice';
 import { fetchCategories } from '../slices/categorySlice';
 import ProductCard from '../components/ProductCard';
 import CategoryCard from '../components/CategoryCard';
+import CarouselComponent from '../components/CarouselComponent';
 import Loader from '../components/Loader';
 import Message from '../components/Message';
 import { addToWishlist, removeFromWishlist } from '../slices/wishlistSlice';
@@ -64,8 +65,30 @@ const HomePage = () => {
         </Link>
       </div>
       
-      {/* Featured Products Section */}
+      {/* Carousel Section */}
       <Container>
+        <CarouselComponent />
+        
+        {/* Categories Section */}
+        <h2 className="section-title text-center mb-5">Danh mục sản phẩm</h2>
+        
+        {categoryLoading ? (
+          <Loader />
+        ) : (
+          <Row className="justify-content-center">
+            {categories && categories.length > 0 ? categories.slice(0, 4).map((category, index) => (
+              <Col key={category.id} sm={6} md={3} className="mb-4">
+                <div className={`fade-up delay-${index % 3 + 1}`}>
+                  <CategoryCard category={category} />
+                </div>
+              </Col>
+            )) : (
+              <Message>Không có danh mục sản phẩm nào</Message>
+            )}
+          </Row>
+        )}
+        
+        {/* Featured Products Section */}
         <h2 className="section-title text-center mb-5">Sản phẩm nổi bật</h2>
         
         {loading ? (
@@ -93,25 +116,6 @@ const HomePage = () => {
             <Button className="custom-button-warm">Xem tất cả sản phẩm</Button>
           </Link>
         </div>
-        
-        {/* Categories Section */}
-        <h2 className="section-title text-center mb-5">Danh mục sản phẩm</h2>
-        
-        {categoryLoading ? (
-          <Loader />
-        ) : (
-          <Row className="justify-content-center">
-            {categories && categories.length > 0 ? categories.slice(0, 4).map((category, index) => (
-              <Col key={category.id} sm={6} md={3} className="mb-4">
-                <div className={`fade-up delay-${index % 3 + 1}`}>
-                  <CategoryCard category={category} />
-                </div>
-              </Col>
-            )) : (
-              <Message>Không có danh mục sản phẩm nào</Message>
-            )}
-          </Row>
-        )}
         
         {/* Features Section */}
         <div className="features-section py-5">
