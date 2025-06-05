@@ -4,7 +4,10 @@ const {
   createPaymentIntent,
   getPaymentMethods,
   handleWebhook,
-  getPaymentStatus
+  getPaymentStatus,
+  createMomoPayment,
+  handleMomoIPN,
+  verifyMomoPayment
 } = require('../controllers/paymentController');
 const { protect, admin } = require('../middleware/auth');
 
@@ -27,5 +30,20 @@ router.post('/webhook', express.raw({type: 'application/json'}), handleWebhook);
 // @desc    Get payment status for an order
 // @access  Private
 router.get('/status/:orderId', protect, getPaymentStatus);
+
+// @route   POST /api/payment/create-momo-payment
+// @desc    Create MoMo payment
+// @access  Private
+router.post('/create-momo-payment', protect, createMomoPayment);
+
+// @route   POST /api/payment/momo-ipn
+// @desc    Handle MoMo IPN (Instant Payment Notification)
+// @access  Public
+router.post('/momo-ipn', handleMomoIPN);
+
+// @route   GET /api/payment/verify-momo/:orderId
+// @desc    Verify MoMo payment status
+// @access  Private
+router.get('/verify-momo/:orderId', protect, verifyMomoPayment);
 
 module.exports = router; 

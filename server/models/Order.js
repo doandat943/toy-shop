@@ -69,7 +69,7 @@ const Order = sequelize.define('Order', {
     type: DataTypes.STRING
   },
   paymentMethod: {
-    type: DataTypes.ENUM('cod', 'bank_transfer', 'credit_card', 'qr_code'),
+    type: DataTypes.ENUM('cod', 'bank_transfer', 'credit_card', 'qr_code', 'momo', 'paypal'),
     defaultValue: 'cod'
   },
   paymentStatus: {
@@ -84,6 +84,26 @@ const Order = sequelize.define('Order', {
     },
     set(value) {
       this.setDataValue('paymentDetails', JSON.stringify(value));
+    }
+  },
+  momoPaymentInfo: {
+    type: DataTypes.TEXT, // JSON with MoMo payment request info
+    get() {
+      const rawValue = this.getDataValue('momoPaymentInfo');
+      return rawValue ? JSON.parse(rawValue) : null;
+    },
+    set(value) {
+      this.setDataValue('momoPaymentInfo', JSON.stringify(value));
+    }
+  },
+  momoTransactionInfo: {
+    type: DataTypes.TEXT, // JSON with MoMo transaction details
+    get() {
+      const rawValue = this.getDataValue('momoTransactionInfo');
+      return rawValue ? JSON.parse(rawValue) : null;
+    },
+    set(value) {
+      this.setDataValue('momoTransactionInfo', JSON.stringify(value));
     }
   },
   trackingNumber: {

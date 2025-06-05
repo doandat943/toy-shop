@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Row, Col, ListGroup, Image, Form, Button, Card, Accordion, Tab, Nav } from 'react-bootstrap';
-import { FaTrash, FaPlus, FaMinus, FaMoneyBillAlt, FaCreditCard, FaPaypal, FaTruck } from 'react-icons/fa';
-import { addToCart, removeFromCart, updateCartItemQty, applyPromoCode, resetPromoCode, saveShippingAddress, savePaymentMethod } from '../slices/cartSlice';
+import { FaTrash, FaPlus, FaMinus, FaMoneyBillAlt, FaCreditCard, FaPaypal, FaTruck, FaQrcode } from 'react-icons/fa';
+import { addToCart, removeFromCart, updateCartItemQty, applyPromoCode, resetPromoCode, saveShippingAddress, savePaymentMethod, clearCart } from '../slices/cartSlice';
 import Message from '../components/Message';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { formatPrice } from '../utils/formatPrice';
+import MoMoPayment from '../components/MoMoPayment';
+import axios from 'axios';
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -114,18 +116,22 @@ const CartPage = () => {
     setActiveAccordion('review');
   };
   
-  const placeOrderHandler = () => {
+  const placeOrderHandler = async () => {
     if (!user) {
       navigate('/login?redirect=/cart');
       return;
     }
     
-    // Place order API call would go here
     try {
-      // Sample order placement code
-      // Would need to be replaced with actual API call
-      console.log('Order placed with:', {
-        orderItems: cartItems,
+      setCheckoutError(null);
+      
+      // Prepare order data with modified cart items to include product field
+      const orderData = {
+        orderItems: cartItems.map(item => ({
+          ...item,
+          product: item.id, // Add the product field with the value of item.id
+          qty: item.qty
+        })),
         shippingAddress: {
           fullName,
           address,
@@ -140,13 +146,51 @@ const CartPage = () => {
         taxPrice,
         discountAmount,
         totalPrice
-      });
+      };
       
-      // On successful order placement
-      // navigate(`/order/${order.id}`);
+      // Create the order
+      const { data } = await axios.post('/api/orders', orderData);
+      
+      // If MoMo payment method is selected, redirect to MoMo payment page
+      if (paymentMethod === 'momo') {
+        try {
+          console.log('Creating MoMo payment for order:', data.order.id);
+          
+          const res = await axios.post('/api/payment/create-momo-payment', {
+            orderId: data.order.id,
+            amount: totalPrice,
+            orderInfo: `Thanh toán đơn hàng #${data.order.id}`
+          });
+          
+          // Clear cart after successful order placement
+          dispatch(clearCart());
+          
+          console.log('MoMo payment response:', res.data);
+          
+          if (res.data && res.data.success && res.data.data && res.data.data.payUrl) {
+            // Open MoMo payment URL in same window
+            console.log('Redirecting to MoMo payment URL:', res.data.data.payUrl);
+            window.open(res.data.data.payUrl, '_self');
+          } else {
+            throw new Error('Không nhận được URL thanh toán từ MoMo');
+          }
+        } catch (error) {
+          console.error('Error creating MoMo payment:', error);
+          setCheckoutError(
+            error.response?.data?.message || 
+            'Có lỗi xảy ra khi tạo thanh toán MoMo. Vui lòng kiểm tra lại.'
+          );
+          // Vẫn tiếp tục đến trang chi tiết đơn hàng trong trường hợp lỗi
+          navigate(`/order/${data.order.id}`);
+        }
+      } else {
+        // For other payment methods, clear cart and navigate to order details page
+        dispatch(clearCart());
+        navigate(`/order/${data.order.id}`);
+      }
       
     } catch (error) {
-      setCheckoutError(error.message || 'There was an error placing your order.');
+      setCheckoutError(error.response?.data?.message || 'Có lỗi xảy ra khi đặt hàng.');
     }
   };
   
@@ -551,6 +595,31 @@ const CartPage = () => {
                           )}
                         </div>
 
+                        <div className="payment-option mb-3">
+                          <Form.Check
+                            type="radio"
+                            id="momo"
+                            name="paymentMethod"
+                            label={
+                              <div className="d-flex align-items-center">
+                                <FaQrcode className="me-2 text-danger" />
+                                <span>Thanh toán qua MoMo</span>
+                              </div>
+                            }
+                            value="momo"
+                            checked={paymentMethod === 'momo'}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className="payment-radio"
+                          />
+                          {paymentMethod === 'momo' && (
+                            <div className="payment-method-description mt-2 ms-4 ps-2">
+                              <small className="text-muted">
+                                Thanh toán bằng ví điện tử MoMo thông qua QR Code hoặc ứng dụng.
+                              </small>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="payment-option">
                           <Form.Check
                             type="radio"
@@ -689,12 +758,14 @@ const CartPage = () => {
                         {paymentMethod === 'cod' && <FaMoneyBillAlt className="me-2" />}
                         {paymentMethod === 'bank_transfer' && <FaCreditCard className="me-2" />}
                         {paymentMethod === 'paypal' && <FaPaypal className="me-2" />}
+                        {paymentMethod === 'momo' && <FaQrcode className="me-2" />}
                         <h5 className="mb-0">Phương thức thanh toán</h5>
                       </Card.Header>
                       <Card.Body>
                         {paymentMethod === 'cod' && <p className="mb-0">Thanh toán khi nhận hàng (COD)</p>}
                         {paymentMethod === 'bank_transfer' && <p className="mb-0">Chuyển khoản ngân hàng</p>}
                         {paymentMethod === 'paypal' && <p className="mb-0">PayPal / Thẻ tín dụng</p>}
+                        {paymentMethod === 'momo' && <p className="mb-0">Thanh toán qua MoMo</p>}
                       </Card.Body>
                     </Card>
                   </Col>

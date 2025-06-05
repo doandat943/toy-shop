@@ -4,6 +4,7 @@ import { Row, Col, ListGroup, Image, Card, Button, Alert, Spinner, Badge } from 
 import { useSelector } from 'react-redux';
 import { FaFileInvoiceDollar, FaCreditCard, FaMoneyBill, FaUniversity, FaQrcode } from 'react-icons/fa';
 import axios from 'axios';
+import MoMoPayment from '../components/MoMoPayment';
 
 const OrderPage = () => {
   const { id } = useParams();
@@ -17,6 +18,8 @@ const OrderPage = () => {
   const [paymentStatusLoading, setPaymentStatusLoading] = useState(false);
   const [paymentSuccess] = useState(searchParams.get('payment_success') === 'true');
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [showRetryMomo, setShowRetryMomo] = useState(false);
+  const [verificationInterval, setVerificationInterval] = useState(null);
 
   useEffect(() => {
     const getOrderDetails = async () => {
@@ -179,6 +182,45 @@ const OrderPage = () => {
     }
   };
 
+  // Verify payment status
+  const verifyPayment = async (orderId) => {
+    try {
+      const { data } = await axios.get(`/api/payment/verify-momo/${orderId}`);
+      
+      // If payment is successful
+      if (data.data.isPaid) {
+        // Clear the interval
+        if (verificationInterval) {
+          clearInterval(verificationInterval);
+          setVerificationInterval(null);
+        }
+        
+        handleMoMoSuccess(data.data);
+      }
+    } catch (error) {
+      console.error('Error verifying MoMo payment:', error);
+    }
+  };
+
+  // Handle MoMo payment success
+  const handleMoMoSuccess = (paymentResult) => {
+    // Update order with payment info
+    setOrder((prev) => ({
+      ...prev,
+      isPaid: true,
+      paidAt: new Date().toISOString(),
+      paymentResult: paymentResult
+    }));
+    setShowRetryMomo(false);
+    // Reload the page to get updated order status
+    window.location.reload();
+  };
+
+  // Handle MoMo payment error
+  const handleMoMoError = (error) => {
+    console.error('MoMo payment error:', error);
+  };
+
   if (loading) {
     return (
       <div className="d-flex justify-content-center my-5">
@@ -266,18 +308,48 @@ const OrderPage = () => {
             </Card.Header>
             <Card.Body>
               <p>
-                <strong>Phương thức:</strong> {getPaymentMethodText(order.paymentMethod)}
-              </p>
-              <p>
-                <strong>Trạng thái:</strong>{' '}
-                {order.isPaid || order.paymentStatus === 'paid' ? (
-                  <Badge bg="success">Đã thanh toán lúc {new Date(order.paidAt).toLocaleString('vi-VN')}</Badge>
-                ) : (
-                  <Badge bg="danger">Chưa thanh toán</Badge>
-                )}
+                <strong>Phương thức: </strong>
+                {getPaymentMethodIcon(order.paymentMethod)}
+                {getPaymentMethodText(order.paymentMethod)}
               </p>
               
-              {getPaymentMethodDetails(order.paymentMethod)}
+              {order.isPaid ? (
+                <Alert variant="success" className="mb-0">
+                  Đã thanh toán vào {new Date(order.paidAt).toLocaleString('vi-VN')}
+                </Alert>
+              ) : (
+                <>
+                  <Alert variant="warning" className="mb-3">
+                    Chưa thanh toán
+                  </Alert>
+                  {order.paymentMethod === 'momo' && (
+                    <div>
+                      <Button 
+                        variant="primary"
+                        onClick={() => setShowRetryMomo(!showRetryMomo)}
+                        className="w-100"
+                      >
+                        <FaQrcode className="me-2" />
+                        {showRetryMomo ? 'Ẩn' : 'Thanh toán lại với MoMo'}
+                      </Button>
+                      
+                      {showRetryMomo && (
+                        <div className="mt-3">
+                          <MoMoPayment
+                            orderInfo={{
+                              orderId: order.id,
+                              total: order.totalAmount
+                            }}
+                            onPaymentSuccess={handleMoMoSuccess}
+                            onPaymentError={handleMoMoError}
+                            showRetryButton={true}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
               
               {order.paymentMethod === 'stripe' && !order.isPaid && paymentStatus && (
                 <div className="mt-3">

@@ -11,6 +11,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import OrderPage from './pages/OrderPage';
 import OrdersPage from './pages/OrdersPage';
+import OrderStatusPage from './pages/OrderStatusPage';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
 import BirthdayGiftFinderPage from './pages/BirthdayGiftFinderPage';
@@ -77,6 +78,7 @@ const App = () => {
                     {/* Protected Routes - Requires Authentication */}
                     <Route element={<PrivateRoute />}>
                       <Route path="/order/:id" element={<OrderPage />} />
+                      <Route path="/order/status/:orderId" element={<OrderStatusPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/wishlist" element={<WishlistPage />} />
