@@ -20,6 +20,7 @@ import PromotionalCalendarPage from './pages/PromotionalCalendarPage';
 import BlogPage from './pages/BlogPage';
 import BlogDetailPage from './pages/BlogDetailPage';
 import ProfilePage from './pages/ProfilePage';
+import WishlistPage from './pages/WishlistPage';
 
 // Admin pages
 import DashboardPage from './pages/admin/DashboardPage';
@@ -91,6 +92,9 @@ const App = () => {
                     {/* Blog pages */}
                     <Route path="/blog" element={<BlogPage />} />
                     <Route path="/blog/:id" element={<BlogDetailPage />} />
+
+                    {/* Wishlist page */}
+                    <Route path="/wishlist" element={<WishlistPage />} />
                   </Routes>
                 </Container>
               </main>
