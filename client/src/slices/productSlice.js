@@ -236,6 +236,19 @@ const productSlice = createSlice({
       })
       .addCase(fetchProductDetails.fulfilled, (state, action) => {
         state.loading = false;
+        // Ensure product.images is always an array
+        if (action.payload && action.payload.images && !Array.isArray(action.payload.images)) {
+          try {
+            action.payload.images = JSON.parse(action.payload.images);
+            if (!Array.isArray(action.payload.images)) {
+              action.payload.images = [];
+            }
+          } catch (error) {
+            action.payload.images = [];
+          }
+        } else if (action.payload && !action.payload.images) {
+          action.payload.images = [];
+        }
         state.product = action.payload;
       })
       .addCase(fetchProductDetails.rejected, (state, action) => {

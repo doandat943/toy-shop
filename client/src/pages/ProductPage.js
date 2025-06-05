@@ -112,7 +112,7 @@ const ProductPage = () => {
                   <div className="sale-badge-large">SALE</div>
                 )}
               </div>
-              {product.images && product.images.length > 0 && (
+              {product.images && Array.isArray(product.images) && product.images.length > 0 && (
                 <Row className="mt-3">
                   {product.images.slice(0, 4).map((image, index) => (
                     <Col key={index} xs={3} className="product-thumb-col">
