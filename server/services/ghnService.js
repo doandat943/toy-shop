@@ -6,11 +6,20 @@ const GHN_API = {
   DEV: 'https://dev-online-gateway.ghn.vn/shiip/public-api/v2',
 };
 
+// Check required environment variables
+if (!process.env.GHN_TOKEN) {
+  console.error('Missing required environment variable: GHN_TOKEN');
+}
+
+if (!process.env.GHN_SHOP_ID) {
+  console.error('Missing required environment variable: GHN_SHOP_ID');
+}
+
 // GHN Configuration
 const config = {
-  token: '275c6280-424e-11f0-9b81-222185cb68c8',
-  shopId: 196792,
-  baseURL: process.env.NODE_ENV === 'production' ? GHN_API.PROD : GHN_API.PROD, // Use PROD for now
+  token: process.env.GHN_TOKEN,
+  shopId: process.env.GHN_SHOP_ID ? parseInt(process.env.GHN_SHOP_ID) : 0,
+  baseURL: process.env.GHN_ENV === 'dev' ? GHN_API.DEV : GHN_API.PROD,
 };
 
 // Create GHN API client
@@ -22,6 +31,50 @@ const ghnClient = axios.create({
     'ShopId': config.shopId
   }
 });
+
+/**
+ * Get list of provinces
+ * @returns {Promise<Array>} - List of provinces
+ */
+const getProvinces = async () => {
+  try {
+    const response = await ghnClient.get('/master-data/province');
+    return response.data.data || [];
+  } catch (error) {
+    console.error('GHN API Error (getProvinces):', error.response?.data || error.message);
+    throw new Error('Failed to get provinces');
+  }
+};
+
+/**
+ * Get list of districts by province
+ * @param {Number} provinceId - Province ID
+ * @returns {Promise<Array>} - List of districts
+ */
+const getDistricts = async (provinceId) => {
+  try {
+    const response = await ghnClient.get(`/master-data/district?province_id=${provinceId}`);
+    return response.data.data || [];
+  } catch (error) {
+    console.error('GHN API Error (getDistricts):', error.response?.data || error.message);
+    throw new Error('Failed to get districts');
+  }
+};
+
+/**
+ * Get list of wards by district
+ * @param {Number} districtId - District ID
+ * @returns {Promise<Array>} - List of wards
+ */
+const getWards = async (districtId) => {
+  try {
+    const response = await ghnClient.get(`/master-data/ward?district_id=${districtId}`);
+    return response.data.data || [];
+  } catch (error) {
+    console.error('GHN API Error (getWards):', error.response?.data || error.message);
+    throw new Error('Failed to get wards');
+  }
+};
 
 /**
  * Get available shipping services between two districts
@@ -144,6 +197,9 @@ const getShippingOrderDetail = async (orderCode) => {
 };
 
 module.exports = {
+  getProvinces,
+  getDistricts,
+  getWards,
   getAvailableServices,
   calculateShippingFee,
   createShippingOrder,

@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { protect, admin } = require('../middleware/auth');
 const {
+  getProvinces,
+  getDistricts,
+  getWards,
   getShippingServices,
   calculateShippingFee,
   createShippingOrder,
@@ -9,6 +12,9 @@ const {
 } = require('../controllers/shippingController');
 
 // Public routes
+router.get('/provinces', getProvinces);
+router.get('/districts/:provinceId', getDistricts);
+router.get('/wards/:districtId', getWards);
 router.post('/services', getShippingServices);
 router.post('/calculate', calculateShippingFee);
 

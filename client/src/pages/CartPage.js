@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Row, Col, ListGroup, Image, Form, Button, Card, Accordion, Tab, Nav } from 'react-bootstrap';
-import { FaTrash, FaPlus, FaMinus, FaMoneyBillAlt, FaCreditCard, FaPaypal, FaTruck, FaQrcode } from 'react-icons/fa';
+import { Row, Col, ListGroup, Image, Form, Button, Card, Accordion, Tab, Nav, Alert, Spinner } from 'react-bootstrap';
+import { FaTrash, FaPlus, FaMinus, FaMoneyBillAlt, FaCreditCard, FaPaypal, FaTruck, FaQrcode, FaTimes } from 'react-icons/fa';
 import { addToCart, removeFromCart, updateCartItemQty, applyPromoCode, resetPromoCode, saveShippingAddress, savePaymentMethod, clearCart } from '../slices/cartSlice';
+import { resetShippingAddress } from '../slices/shippingSlice';
+import { createOrder } from '../slices/orderSlice';
+import { applyPromo, removePromo } from '../slices/promoSlice';
 import Message from '../components/Message';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { formatPrice } from '../utils/formatPrice';
 import MoMoPayment from '../components/MoMoPayment';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import GHNShippingCalculator from '../components/shipping/GHNShippingCalculator';
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -17,16 +22,18 @@ const CartPage = () => {
 
   const { cartItems, loading, error, promoCode, promoCodeError, promoCodeLoading, itemsPrice, shippingPrice, taxPrice, discountAmount, totalPrice, shippingAddress } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.user);
+  const { shippingAddress: shippingAddressSlice } = useSelector((state) => state.shipping);
+  const { promo } = useSelector((state) => state.promo);
   
   const [promoInput, setPromoInputVal] = useState('');
   
   // Shipping form state
-  const [fullName, setFullName] = useState(shippingAddress?.fullName || user?.name || '');
-  const [address, setAddress] = useState(shippingAddress?.address || '');
-  const [city, setCity] = useState(shippingAddress?.city || '');
-  const [postalCode, setPostalCode] = useState(shippingAddress?.postalCode || '');
-  const [phone, setPhone] = useState(shippingAddress?.phone || user?.phone || '');
-  const [note, setNote] = useState(shippingAddress?.note || '');
+  const [fullName, setFullName] = useState(shippingAddressSlice?.fullName || user?.name || '');
+  const [address, setAddress] = useState(shippingAddressSlice?.address || '');
+  const [city, setCity] = useState(shippingAddressSlice?.city || '');
+  const [postalCode, setPostalCode] = useState(shippingAddressSlice?.postalCode || '');
+  const [phone, setPhone] = useState(shippingAddressSlice?.phone || user?.phone || '');
+  const [note, setNote] = useState(shippingAddressSlice?.note || '');
   
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState('cod');
@@ -38,12 +45,117 @@ const CartPage = () => {
   const [validated, setValidated] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
 
+  // Thêm các state mới cho GHN
+  const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([]);
+  const [selectedProvince, setSelectedProvince] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedWard, setSelectedWard] = useState('');
+  const [selectedShippingService, setSelectedShippingService] = useState(null);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+
   useEffect(() => {
     if (id) {
       dispatch(addToCart({ id, qty: 1 }));
       navigate('/cart', { replace: true });
     }
   }, [dispatch, id, navigate]);
+
+  useEffect(() => {
+    if (shippingAddressSlice) {
+      setFullName(shippingAddressSlice.fullName || '');
+      setPhone(shippingAddressSlice.phone || '');
+      setAddress(shippingAddressSlice.address || '');
+      setCity(shippingAddressSlice.city || '');
+      setPostalCode(shippingAddressSlice.postalCode || '');
+      setSelectedProvince(shippingAddressSlice.provinceId || '');
+      setSelectedDistrict(shippingAddressSlice.districtId || '');
+      setSelectedWard(shippingAddressSlice.wardCode || '');
+    } else if (user) {
+      setFullName(user.name || '');
+      setPhone(user.phone || '');
+    }
+  }, [shippingAddressSlice, user]);
+
+  // Fetch provinces on component mount
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      try {
+        setLoadingLocations(true);
+        const { data } = await axios.get('/api/shipping/provinces');
+        if (data.success && data.data) {
+          setProvinces(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching provinces:', error);
+        toast.error('Không thể lấy danh sách tỉnh/thành phố');
+      } finally {
+        setLoadingLocations(false);
+      }
+    };
+
+    fetchProvinces();
+  }, []);
+
+  // Fetch districts when province changes
+  useEffect(() => {
+    const fetchDistricts = async () => {
+      if (!selectedProvince) {
+        setDistricts([]);
+        return;
+      }
+      
+      try {
+        setLoadingLocations(true);
+        const { data } = await axios.get(`/api/shipping/districts/${selectedProvince}`);
+        if (data.success && data.data) {
+          setDistricts(data.data);
+          // Reset district and ward when province changes
+          if (selectedDistrict) {
+            setSelectedDistrict('');
+            setSelectedWard('');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching districts:', error);
+        toast.error('Không thể lấy danh sách quận/huyện');
+      } finally {
+        setLoadingLocations(false);
+      }
+    };
+
+    fetchDistricts();
+  }, [selectedProvince]);
+
+  // Fetch wards when district changes
+  useEffect(() => {
+    const fetchWards = async () => {
+      if (!selectedDistrict) {
+        setWards([]);
+        return;
+      }
+      
+      try {
+        setLoadingLocations(true);
+        const { data } = await axios.get(`/api/shipping/wards/${selectedDistrict}`);
+        if (data.success && data.data) {
+          setWards(data.data);
+          // Reset ward when district changes
+          if (selectedWard) {
+            setSelectedWard('');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching wards:', error);
+        toast.error('Không thể lấy danh sách phường/xã');
+      } finally {
+        setLoadingLocations(false);
+      }
+    };
+
+    fetchWards();
+  }, [selectedDistrict]);
 
   const removeFromCartHandler = (itemId) => {
     dispatch(removeFromCart(itemId));
@@ -79,12 +191,12 @@ const CartPage = () => {
   const applyPromoHandler = (e) => {
     e.preventDefault();
     if (promoInput.trim()) {
-      dispatch(applyPromoCode(promoInput));
+      dispatch(applyPromo(promoInput));
     }
   };
 
   const removePromoHandler = () => {
-    dispatch(resetPromoCode());
+    dispatch(removePromo());
     setPromoInputVal('');
   };
 
@@ -98,21 +210,46 @@ const CartPage = () => {
       return;
     }
     
-    dispatch(saveShippingAddress({
-      fullName,
-      address,
-      city,
-      postalCode,
-      phone,
-      note
-    }));
-    
+    // Make sure we have the required GHN fields
+    if (!selectedProvince || !selectedDistrict || !selectedWard) {
+      toast.error('Vui lòng chọn đầy đủ thông tin địa chỉ');
+      return;
+    }
+
+    // Find province and district names for readability
+    const provinceName = provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName || '';
+    const districtName = districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName || '';
+    const wardName = wards.find(w => w.WardCode === selectedWard)?.WardName || '';
+
+    dispatch(
+      saveShippingAddress({
+        fullName,
+        phone,
+        address,
+        wardName,
+        wardCode: selectedWard,
+        districtName,
+        districtId: selectedDistrict,
+        provinceName,
+        provinceId: selectedProvince,
+        city,
+        postalCode,
+        note
+      })
+    );
+
     setActiveAccordion('payment');
   };
   
   const handlePaymentSubmit = (e) => {
     e.preventDefault();
-    dispatch(savePaymentMethod(paymentMethod));
+    
+    // Make sure we have a shipping service selected
+    if (!selectedShippingService) {
+      toast.error('Vui lòng chọn phương thức vận chuyển');
+      return;
+    }
+    
     setActiveAccordion('review');
   };
   
@@ -125,27 +262,30 @@ const CartPage = () => {
     try {
       setCheckoutError(null);
       
-      // Prepare order data with modified cart items to include product field
+      // Add shipping service info to the order
       const orderData = {
-        orderItems: cartItems.map(item => ({
-          ...item,
-          product: item.id, // Add the product field with the value of item.id
-          qty: item.qty
-        })),
+        orderItems: cartItems,
         shippingAddress: {
           fullName,
+          phone,
           address,
+          wardName: wards.find(w => w.WardCode === selectedWard)?.WardName || '',
+          wardCode: selectedWard,
+          districtName: districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName || '',
+          districtId: selectedDistrict,
+          provinceName: provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName || '',
+          provinceId: selectedProvince,
           city,
           postalCode,
-          phone,
           note
         },
         paymentMethod,
-        itemsPrice,
-        shippingPrice,
-        taxPrice,
-        discountAmount,
-        totalPrice
+        shippingService: selectedShippingService,
+        itemsPrice: cartItems.reduce((acc, item) => acc + item.price * item.qty, 0),
+        shippingPrice: selectedShippingService.fee || 0,
+        discountAmount: promo ? promo.discountAmount : 0,
+        promoCode: promo ? promo.code : '',
+        totalAmount: calculateTotalAmount()
       };
       
       // Create the order
@@ -200,6 +340,20 @@ const CartPage = () => {
     } else {
       setActiveAccordion('shipping');
     }
+  };
+
+  // Thêm phương thức tính tổng tiền bao gồm phí ship
+  const calculateTotalAmount = () => {
+    const itemsTotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+    const discountAmount = promo ? promo.discountAmount : 0;
+    const shippingFee = selectedShippingService?.fee || 0;
+    
+    return itemsTotal - discountAmount + shippingFee;
+  };
+
+  // Thêm phương thức xử lý khi chọn dịch vụ vận chuyển
+  const handleSelectShippingService = (serviceInfo) => {
+    setSelectedShippingService(serviceInfo);
   };
 
   return (
@@ -462,7 +616,7 @@ const CartPage = () => {
                     <Form.Label>Địa chỉ <span className="text-danger">*</span></Form.Label>
                     <Form.Control
                       type="text"
-                      placeholder="Nhập địa chỉ"
+                      placeholder="Nhập địa chỉ chi tiết (số nhà, đường, ...)"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       required
@@ -471,27 +625,103 @@ const CartPage = () => {
                   </Form.Group>
 
                   <Row>
-                    <Col md={8}>
-                      <Form.Group className="mb-3" controlId="city">
-                        <Form.Label>Thành phố / Tỉnh <span className="text-danger">*</span></Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Nhập thành phố/tỉnh"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          required
-                        />
-                        <Form.Control.Feedback type="invalid">Vui lòng nhập thành phố/tỉnh.</Form.Control.Feedback>
+                    <Col md={12}>
+                      <Form.Group className="mb-3" controlId="province">
+                        <Form.Label>Tỉnh/Thành phố <span className="text-danger">*</span></Form.Label>
+                        {loadingLocations && !provinces.length ? (
+                          <div className="text-center py-2">
+                            <Spinner animation="border" size="sm" /> Đang tải...
+                          </div>
+                        ) : (
+                          <Form.Control
+                            as="select"
+                            value={selectedProvince}
+                            onChange={(e) => setSelectedProvince(e.target.value)}
+                            required
+                          >
+                            <option value="">-- Chọn Tỉnh/Thành phố --</option>
+                            {provinces.map((province) => (
+                              <option key={province.ProvinceID} value={province.ProvinceID}>
+                                {province.ProvinceName}
+                              </option>
+                            ))}
+                          </Form.Control>
+                        )}
+                        <Form.Control.Feedback type="invalid">
+                          Vui lòng chọn Tỉnh/Thành phố.
+                        </Form.Control.Feedback>
                       </Form.Group>
                     </Col>
-                    <Col md={4}>
-                      <Form.Group className="mb-3" controlId="postalCode">
-                        <Form.Label>Mã bưu điện</Form.Label>
+                  </Row>
+
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3" controlId="district">
+                        <Form.Label>Quận/Huyện <span className="text-danger">*</span></Form.Label>
+                        {loadingLocations && selectedProvince && !districts.length ? (
+                          <div className="text-center py-2">
+                            <Spinner animation="border" size="sm" /> Đang tải...
+                          </div>
+                        ) : (
+                          <Form.Control
+                            as="select"
+                            value={selectedDistrict}
+                            onChange={(e) => setSelectedDistrict(e.target.value)}
+                            disabled={!selectedProvince}
+                            required
+                          >
+                            <option value="">-- Chọn Quận/Huyện --</option>
+                            {districts.map((district) => (
+                              <option key={district.DistrictID} value={district.DistrictID}>
+                                {district.DistrictName}
+                              </option>
+                            ))}
+                          </Form.Control>
+                        )}
+                        <Form.Control.Feedback type="invalid">
+                          Vui lòng chọn Quận/Huyện.
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3" controlId="ward">
+                        <Form.Label>Phường/Xã <span className="text-danger">*</span></Form.Label>
+                        {loadingLocations && selectedDistrict && !wards.length ? (
+                          <div className="text-center py-2">
+                            <Spinner animation="border" size="sm" /> Đang tải...
+                          </div>
+                        ) : (
+                          <Form.Control
+                            as="select"
+                            value={selectedWard}
+                            onChange={(e) => setSelectedWard(e.target.value)}
+                            disabled={!selectedDistrict}
+                            required
+                          >
+                            <option value="">-- Chọn Phường/Xã --</option>
+                            {wards.map((ward) => (
+                              <option key={ward.WardCode} value={ward.WardCode}>
+                                {ward.WardName}
+                              </option>
+                            ))}
+                          </Form.Control>
+                        )}
+                        <Form.Control.Feedback type="invalid">
+                          Vui lòng chọn Phường/Xã.
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <Row>
+                    <Col md={12}>
+                      <Form.Group className="mb-3" controlId="city">
+                        <Form.Label>Địa chỉ bổ sung</Form.Label>
                         <Form.Control
                           type="text"
-                          placeholder="Nhập mã bưu điện (nếu có)"
-                          value={postalCode}
-                          onChange={(e) => setPostalCode(e.target.value)}
+                          placeholder="Thông tin thêm để dễ tìm (nếu có)"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
                         />
                       </Form.Group>
                     </Col>
@@ -535,13 +765,29 @@ const CartPage = () => {
           <Accordion.Header>
             <div className="d-flex align-items-center">
               <span className="accordion-number me-3">3</span>
-              <span className="fw-bold">Phương thức thanh toán</span>
+              <span className="fw-bold">Phương thức vận chuyển và thanh toán</span>
             </div>
           </Accordion.Header>
           <Accordion.Body>
             <Row className="justify-content-center">
               <Col md={10} lg={8}>
                 <Form onSubmit={handlePaymentSubmit}>
+                  {/* GHN Shipping Calculator */}
+                  {selectedDistrict && selectedWard ? (
+                    <GHNShippingCalculator 
+                      onSelectService={handleSelectShippingService} 
+                      selectedDistrict={selectedDistrict}
+                      selectedWard={selectedWard}
+                    />
+                  ) : (
+                    <Alert variant="warning">
+                      Vui lòng hoàn thành thông tin địa chỉ giao hàng để xem các phương thức vận chuyển.
+                    </Alert>
+                  )}
+                  
+                  <hr className="my-4" />
+                  
+                  <h5 className="mb-3">Phương thức thanh toán</h5>
                   <div className="payment-methods-container mb-4">
                     <Form.Group>
                       <div className="payment-method-options">
@@ -660,6 +906,7 @@ const CartPage = () => {
                       type="submit" 
                       variant="primary"
                       className="px-4"
+                      disabled={!selectedShippingService}
                     >
                       Tiếp tục
                     </Button>
@@ -671,169 +918,133 @@ const CartPage = () => {
         </Accordion.Item>
 
         {/* ORDER REVIEW SECTION */}
-        <Accordion.Item eventKey="review">
+        <Accordion.Item eventKey="review" className="mb-4">
           <Accordion.Header>
             <div className="d-flex align-items-center">
               <span className="accordion-number me-3">4</span>
-              <span className="fw-bold">Xác nhận đặt hàng</span>
+              <span className="fw-bold">Xác nhận đơn hàng</span>
             </div>
           </Accordion.Header>
           <Accordion.Body>
-            <Row>
-              <Col md={8}>
-                <Card className="mb-4 shadow-sm">
-                  <Card.Header className="bg-light">
-                    <h5 className="mb-0">Thông tin đơn hàng</h5>
+            <Row className="justify-content-center">
+              <Col md={10} lg={8}>
+                <Card className="mb-4">
+                  <Card.Header>
+                    <h5 className="mb-0">Thông tin giao hàng</h5>
                   </Card.Header>
                   <Card.Body>
-                    <ListGroup variant="flush" className="order-items-list">
-                      {cartItems.map((item) => (
-                        <ListGroup.Item key={item.id} className="px-0 py-3 border-bottom">
-                          <Row className="align-items-center">
-                            {/* Image Column */}
-                            <Col xs={3} sm={2} className="text-center mb-2 mb-sm-0">
-                              <ImageWithFallback
-                                src={item.image}
-                                alt={item.name}
-                                fluid
-                                rounded
-                                style={{ maxHeight: '80px', objectFit: 'contain', margin: '0 auto' }}
-                                fallbackSrc="https://placehold.co/80x80/e5e5e5/a0a0a0?text=No+Image"
-                              />
-                            </Col>
+                    <p><strong>Họ tên:</strong> {fullName}</p>
+                    <p><strong>Số điện thoại:</strong> {phone}</p>
+                    <p><strong>Địa chỉ:</strong> {address}</p>
+                    <p><strong>Khu vực:</strong> {wards.find(w => w.WardCode === selectedWard)?.WardName || ''}, {districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName || ''}, {provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName || ''}</p>
+                    {note && <p><strong>Ghi chú:</strong> {note}</p>}
 
-                            {/* Product Details Column */}
-                            <Col xs={9} sm={7}>
-                              <Link to={`/product/${item.id}`} className="fw-bold text-decoration-none text-dark d-block mb-1" style={{ fontSize: '0.95rem' }}>
-                                {item.name}
-                              </Link>
-                              {item.personalization && (
-                                <div className="personalization-info mb-1">
-                                  {Object.entries(item.personalization).map(([key, value]) => (
-                                    <small key={key} className="d-block text-muted" style={{ fontSize: '0.8rem' }}>
-                                      {key}: {value}
-                                    </small>
-                                  ))}
-                                </div>
-                              )}
-                              <small className="text-muted d-block">Giá: {formatPrice(item.price)}</small>
-                              <small className="text-muted">Số lượng: {item.qty}</small>
-                            </Col>
+                    <div className="mt-3">
+                      <h6>Phương thức vận chuyển:</h6>
+                      {selectedShippingService && (
+                        <p>
+                          {selectedShippingService.serviceName} - {selectedShippingService.fee.toLocaleString('vi-VN')}₫
+                        </p>
+                      )}
+                    </div>
 
-                            {/* Subtotal Column */}
-                            <Col xs={12} sm={3} className="text-sm-end mt-2 mt-sm-0">
-                              <span className="fw-bold" style={{fontSize: '0.95rem'}}>{formatPrice(item.price * item.qty)}</span>
+                    <div className="mt-3">
+                      <h6>Phương thức thanh toán:</h6>
+                      {paymentMethod === 'cod' && <p>Thanh toán khi nhận hàng (COD)</p>}
+                      {paymentMethod === 'bank_transfer' && <p>Chuyển khoản ngân hàng</p>}
+                      {paymentMethod === 'momo' && <p>Thanh toán qua MoMo</p>}
+                      {paymentMethod === 'paypal' && <p>PayPal / Thẻ tín dụng</p>}
+                    </div>
+                  </Card.Body>
+                </Card>
+
+                <Card className="mb-4">
+                  <Card.Header>
+                    <h5 className="mb-0">Sản phẩm đặt hàng</h5>
+                  </Card.Header>
+                  <ListGroup variant="flush">
+                    {cartItems.map((item) => (
+                      <ListGroup.Item key={item.id}>
+                        <Row className="align-items-center">
+                          <Col md={2} xs={3}>
+                            <ImageWithFallback src={item.image} alt={item.name} fluid rounded />
+                          </Col>
+                          <Col md={6} xs={5}>
+                            <Link to={`/product/${item.id}`}>{item.name}</Link>
+                          </Col>
+                          <Col md={4} xs={4} className="text-right">
+                            {item.qty} x {formatPrice(item.price)}
+                          </Col>
+                        </Row>
+                      </ListGroup.Item>
+                    ))}
+                  </ListGroup>
+                </Card>
+
+                <Card>
+                  <Card.Header>
+                    <h5 className="mb-0">Tổng đơn hàng</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <ListGroup variant="flush">
+                      <ListGroup.Item>
+                        <Row>
+                          <Col>Tạm tính:</Col>
+                          <Col className="text-right">
+                            {formatPrice(cartItems.reduce((acc, item) => acc + item.price * item.qty, 0))}
+                          </Col>
+                        </Row>
+                      </ListGroup.Item>
+                      
+                      {promoCode && (
+                        <ListGroup.Item>
+                          <Row>
+                            <Col>Giảm giá ({promoCode}):</Col>
+                            <Col className="text-right text-danger">
+                              -{formatPrice(discountAmount)}
                             </Col>
                           </Row>
                         </ListGroup.Item>
-                      ))}
+                      )}
+                      
+                      <ListGroup.Item>
+                        <Row>
+                          <Col>Phí vận chuyển:</Col>
+                          <Col className="text-right">
+                            {selectedShippingService ? formatPrice(selectedShippingService.fee) : formatPrice(0)}
+                          </Col>
+                        </Row>
+                      </ListGroup.Item>
+                      
+                      <ListGroup.Item>
+                        <Row>
+                          <Col><strong>Tổng thanh toán:</strong></Col>
+                          <Col className="text-right">
+                            <strong>{formatPrice(calculateTotalAmount())}</strong>
+                          </Col>
+                        </Row>
+                      </ListGroup.Item>
                     </ListGroup>
                   </Card.Body>
                 </Card>
-                
-                <Row>
-                  <Col md={6}>
-                    <Card className="mb-4 mb-md-0 shadow-sm h-100">
-                      <Card.Header className="bg-light d-flex align-items-center">
-                        <FaTruck className="me-2" />
-                        <h5 className="mb-0">Thông tin giao hàng</h5>
-                      </Card.Header>
-                      <Card.Body>
-                        <p className="mb-1"><strong>{fullName}</strong></p>
-                        <p className="mb-1">{phone}</p>
-                        <p className="mb-1">{address}</p>
-                        <p className="mb-1">{city}{postalCode ? `, ${postalCode}` : ''}</p>
-                        {note && (
-                          <div className="mt-3">
-                            <strong>Ghi chú:</strong>
-                            <p className="mb-0 text-muted">{note}</p>
-                          </div>
-                        )}
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                  <Col md={6} className="mt-4 mt-md-0">
-                    <Card className="shadow-sm h-100">
-                      <Card.Header className="bg-light d-flex align-items-center">
-                        {paymentMethod === 'cod' && <FaMoneyBillAlt className="me-2" />}
-                        {paymentMethod === 'bank_transfer' && <FaCreditCard className="me-2" />}
-                        {paymentMethod === 'paypal' && <FaPaypal className="me-2" />}
-                        {paymentMethod === 'momo' && <FaQrcode className="me-2" />}
-                        <h5 className="mb-0">Phương thức thanh toán</h5>
-                      </Card.Header>
-                      <Card.Body>
-                        {paymentMethod === 'cod' && <p className="mb-0">Thanh toán khi nhận hàng (COD)</p>}
-                        {paymentMethod === 'bank_transfer' && <p className="mb-0">Chuyển khoản ngân hàng</p>}
-                        {paymentMethod === 'paypal' && <p className="mb-0">PayPal / Thẻ tín dụng</p>}
-                        {paymentMethod === 'momo' && <p className="mb-0">Thanh toán qua MoMo</p>}
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                </Row>
-              </Col>
 
-              <Col md={4}>
-                <Card className="order-summary-card shadow-sm">
-                  <Card.Header className="bg-light">
-                    <h5 className="mb-0">Tổng đơn hàng</h5>
-                  </Card.Header>
-                  <ListGroup variant="flush">
-                    <ListGroup.Item>
-                      <Row>
-                        <Col>Tạm tính:</Col>
-                        <Col className="text-end">{formatPrice(itemsPrice)}</Col>
-                      </Row>
-                    </ListGroup.Item>
-                    <ListGroup.Item>
-                      <Row>
-                        <Col>Phí vận chuyển:</Col>
-                        <Col className="text-end">{formatPrice(shippingPrice)}</Col>
-                      </Row>
-                    </ListGroup.Item>
-                    <ListGroup.Item>
-                      <Row>
-                        <Col>Thuế (VAT 10%):</Col>
-                        <Col className="text-end">{formatPrice(taxPrice)}</Col>
-                      </Row>
-                    </ListGroup.Item>
-                    {discountAmount > 0 && (
-                      <ListGroup.Item className="discount-row">
-                        <Row>
-                          <Col>Giảm giá{promoCode?.code ? ` (${promoCode.code})` : ''}:</Col>
-                          <Col className="text-end text-danger">-{formatPrice(discountAmount)}</Col>
-                        </Row>
-                      </ListGroup.Item>
-                    )}
-                    <ListGroup.Item className="total-row">
-                      <Row>
-                        <Col className="fw-bold fs-5">Tổng thanh toán:</Col>
-                        <Col className="text-end fw-bold fs-5">{formatPrice(totalPrice)}</Col>
-                      </Row>
-                    </ListGroup.Item>
-                    <ListGroup.Item>
-                      <div className="d-grid gap-2">
-                        <Button
-                          type="button"
-                          variant="outline-secondary"
-                          className="mb-2"
-                          onClick={() => setActiveAccordion('payment')}
-                        >
-                          Quay lại
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="primary"
-                          size="lg"
-                          onClick={placeOrderHandler}
-                          disabled={cartItems.length === 0}
-                          className="place-order-btn"
-                        >
-                          Đặt hàng
-                        </Button>
-                      </div>
-                    </ListGroup.Item>
-                  </ListGroup>
-                </Card>
+                <div className="d-flex justify-content-between mt-4">
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => setActiveAccordion('payment')}
+                    className="px-4"
+                  >
+                    Quay lại
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="success" 
+                    className="px-4"
+                    onClick={placeOrderHandler}
+                  >
+                    Đặt hàng
+                  </Button>
+                </div>
               </Col>
             </Row>
           </Accordion.Body>

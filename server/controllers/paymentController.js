@@ -1,7 +1,50 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { Order } = require('../models');
+const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
+const { Order, OrderItem } = require('../models');
 const crypto = require('crypto');
 const https = require('https');
+const url = require('url');
+
+// MoMo API Constants
+const MOMO_API = {
+  PROD: 'https://business.momo.vn/api',
+  DEV: 'https://test-business.momo.vn/api',
+  CREATE_PATH: '/v2/gateway/api/create'
+};
+
+// Kiểm tra biến môi trường bắt buộc
+if (!process.env.MOMO_PARTNER_CODE) {
+  console.error('Missing required environment variable: MOMO_PARTNER_CODE');
+}
+
+if (!process.env.MOMO_ACCESS_KEY) {
+  console.error('Missing required environment variable: MOMO_ACCESS_KEY');
+}
+
+if (!process.env.MOMO_SECRET_KEY) {
+  console.error('Missing required environment variable: MOMO_SECRET_KEY');
+}
+
+// MoMo payment configuration
+const momoConfig = {
+  partnerCode: process.env.MOMO_PARTNER_CODE,
+  accessKey: process.env.MOMO_ACCESS_KEY,
+  secretKey: process.env.MOMO_SECRET_KEY,
+  baseURL: process.env.MOMO_ENV === 'prod' ? MOMO_API.PROD : MOMO_API.DEV,
+  redirectUrl: process.env.MOMO_REDIRECT_URL || "http://localhost:3000/order/status",
+  ipnUrl: process.env.MOMO_IPN_URL || "http://localhost:5000/api/payment/momo-ipn",
+  requestType: "captureWallet"
+};
+
+// Lấy hostname từ baseURL để sử dụng trong HTTP request
+const getMomoHostname = () => {
+  try {
+    const parsedUrl = new URL(momoConfig.baseURL);
+    return parsedUrl.hostname;
+  } catch (error) {
+    console.error('Error parsing MoMo baseURL:', error);
+    return 'test-payment.momo.vn'; // Fallback to test environment
+  }
+};
 
 // @desc    Create payment intent for Stripe
 // @route   POST /api/payment/create-payment-intent
@@ -263,17 +306,6 @@ const getPaymentStatus = async (req, res) => {
   }
 };
 
-// MoMo payment configuration
-const momoConfig = {
-  partnerCode: process.env.MOMO_PARTNER_CODE || "MOMO",
-  accessKey: process.env.MOMO_ACCESS_KEY || "F8BBA842ECF85",
-  secretKey: process.env.MOMO_SECRET_KEY || "K951B6PE1waDMi640xX08PD3vg6EkVlz",
-  endpoint: "https://test-payment.momo.vn/v2/gateway/api/create",
-  redirectUrl: process.env.MOMO_REDIRECT_URL || "http://localhost:3000/order/status",
-  ipnUrl: process.env.MOMO_IPN_URL || "http://localhost:5000/api/payment/momo-ipn",
-  requestType: "captureWallet"
-};
-
 // Helper function to handle special characters in MoMo signature generation
 const sanitizeMomoParam = (value) => {
   if (typeof value !== 'string') return value;
@@ -383,9 +415,9 @@ const createMomoPayment = async (req, res) => {
     // Make request to MoMo API
     return new Promise((resolve, reject) => {
       const options = {
-        hostname: 'test-payment.momo.vn',
+        hostname: getMomoHostname(),
         port: 443,
-        path: '/v2/gateway/api/create',
+        path: MOMO_API.CREATE_PATH,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

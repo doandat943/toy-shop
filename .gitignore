@@ -16,6 +16,12 @@ node_modules
 /dist
 */dist
 
+# environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
 
 # logs
 logs

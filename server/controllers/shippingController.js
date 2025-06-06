@@ -1,6 +1,84 @@
 const { Order, OrderItem, Product } = require('../models');
 const ghnService = require('../services/ghnService');
 
+// @desc    Get list of provinces
+// @route   GET /api/shipping/provinces
+// @access  Public
+const getProvinces = async (req, res) => {
+  try {
+    const provinces = await ghnService.getProvinces();
+    
+    res.json({
+      success: true,
+      data: provinces
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error getting provinces',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get districts by province
+// @route   GET /api/shipping/districts/:provinceId
+// @access  Public
+const getDistricts = async (req, res) => {
+  try {
+    const { provinceId } = req.params;
+    
+    if (!provinceId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Province ID is required'
+      });
+    }
+    
+    const districts = await ghnService.getDistricts(parseInt(provinceId));
+    
+    res.json({
+      success: true,
+      data: districts
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error getting districts',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get wards by district
+// @route   GET /api/shipping/wards/:districtId
+// @access  Public
+const getWards = async (req, res) => {
+  try {
+    const { districtId } = req.params;
+    
+    if (!districtId) {
+      return res.status(400).json({
+        success: false,
+        message: 'District ID is required'
+      });
+    }
+    
+    const wards = await ghnService.getWards(parseInt(districtId));
+    
+    res.json({
+      success: true,
+      data: wards
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error getting wards',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Get available shipping services
 // @route   POST /api/shipping/services
 // @access  Public
@@ -246,6 +324,9 @@ const getShippingOrder = async (req, res) => {
 };
 
 module.exports = {
+  getProvinces,
+  getDistricts,
+  getWards,
   getShippingServices,
   calculateShippingFee,
   createShippingOrder,
