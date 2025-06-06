@@ -503,7 +503,13 @@ const DashboardPage = () => {
                       {recentOrders ? (
                         recentOrders.map((order) => (
                           <tr key={order.id}>
-                            <td>                              <LinkContainer to={`/admin/order/${order.id}`}>                                <Button variant="link" className="p-0 text-decoration-none">                                  #{order.orderNumber}                                </Button>                              </LinkContainer>                            </td>
+                            <td>
+  <LinkContainer to={`/admin/order/${order.id}`}>
+    <Button variant="link" className="p-0 text-decoration-none">
+      #{order.orderNumber}
+    </Button>
+  </LinkContainer>
+</td>
                             <td>{order.customerName || 'Khách vãng lai'}</td>
                             <td className="text-end">{formatPrice(order.totalAmount)}</td>
                             <td>

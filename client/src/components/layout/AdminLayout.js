@@ -2,7 +2,7 @@ import React from 'react';
 import { Container, Row, Col, Nav } from 'react-bootstrap';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { FaChartBar, FaShoppingCart, FaBoxOpen, FaTag, FaUsers, FaHome, FaSignOutAlt, FaImages } from 'react-icons/fa';
+import { FaChartBar, FaShoppingCart, FaBoxOpen, FaTag, FaUsers, FaHome, FaSignOutAlt, FaImages, FaTruck } from 'react-icons/fa';
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -80,6 +80,13 @@ const AdminLayout = () => {
                 className={`py-3 border-bottom ${isActive('carousel')}`}
               >
                 <FaImages className="me-2" /> Quản lý Carousel
+              </Nav.Link>
+              <Nav.Link 
+                as={Link} 
+                to="/admin/shipping" 
+                className={`py-3 border-bottom ${isActive('shipping')}`}
+              >
+                <FaTruck className="me-2" /> Vận chuyển (GHN)
               </Nav.Link>
               <Nav.Link 
                 as={Link} 

@@ -61,6 +61,7 @@ app.use('/api/carousel', require('./routes/carousel'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/promotion', require('./routes/promotion'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/shipping', require('./routes/shippingRoutes'));
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../client/public/uploads')));

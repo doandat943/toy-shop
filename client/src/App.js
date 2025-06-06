@@ -30,6 +30,7 @@ import ProductFormPage from './pages/admin/ProductFormPage';
 import PromotionsPage from './pages/admin/PromotionsPage';
 import CustomersListPage from './pages/admin/CustomersListPage';
 import CarouselManagementPage from './pages/admin/CarouselManagementPage';
+import AdminShippingPanel from './pages/admin/AdminShippingPanel';
 
 // Layouts
 import AdminLayout from './components/layout/AdminLayout';
@@ -54,6 +55,7 @@ const App = () => {
             <Route path="promotions" element={<PromotionsPage />} />
             <Route path="customers" element={<CustomersListPage />} />
             <Route path="carousel" element={<CarouselManagementPage />} />
+            <Route path="shipping" element={<AdminShippingPanel />} />
           </Route>
         </Route>
 
