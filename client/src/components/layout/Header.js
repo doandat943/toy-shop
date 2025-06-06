@@ -131,9 +131,17 @@ const Header = () => {
                   <LinkContainer to="/profile">
                     <NavDropdown.Item>Tài khoản</NavDropdown.Item>
                   </LinkContainer>
-                  <LinkContainer to="/orders">
-                    <NavDropdown.Item>Đơn hàng của tôi</NavDropdown.Item>
-                  </LinkContainer>
+                  
+                  {user.role === 'admin' ? (
+                    <LinkContainer to="/admin">
+                      <NavDropdown.Item>Quản lý</NavDropdown.Item>
+                    </LinkContainer>
+                  ) : (
+                    <LinkContainer to="/orders">
+                      <NavDropdown.Item>Đơn hàng của tôi</NavDropdown.Item>
+                    </LinkContainer>
+                  )}
+                  
                   <NavDropdown.Divider />
                   <NavDropdown.Item onClick={logoutHandler}>
                     Đăng xuất
