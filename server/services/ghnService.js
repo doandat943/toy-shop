@@ -2,8 +2,8 @@ const axios = require('axios');
 
 // GHN API Constants
 const GHN_API = {
-  PROD: 'https://online-gateway.ghn.vn/shiip/public-api/v2',
-  DEV: 'https://dev-online-gateway.ghn.vn/shiip/public-api/v2',
+  PROD: 'https://online-gateway.ghn.vn/shiip/public-api',
+  DEV: 'https://dev-online-gateway.ghn.vn/shiip/public-api',
 };
 
 // Check required environment variables
@@ -84,7 +84,7 @@ const getWards = async (districtId) => {
  */
 const getAvailableServices = async (fromDistrictId, toDistrictId) => {
   try {
-    const response = await ghnClient.post('/shipping-order/available-services', {
+    const response = await ghnClient.post('/v2/shipping-order/available-services', {
       shop_id: config.shopId,
       from_district: fromDistrictId,
       to_district: toDistrictId
@@ -104,7 +104,7 @@ const getAvailableServices = async (fromDistrictId, toDistrictId) => {
  */
 const calculateShippingFee = async (data) => {
   try {
-    const response = await ghnClient.post('/shipping-order/fee', {
+    const response = await ghnClient.post('/v2/shipping-order/fee', {
       service_id: data.serviceId,
       service_type_id: data.serviceTypeId || null,
       to_district_id: data.toDistrictId,
@@ -169,7 +169,7 @@ const createShippingOrder = async (orderData) => {
       }));
     }
     
-    const response = await ghnClient.post('/shipping-order/create', payload);
+    const response = await ghnClient.post('/v2/shipping-order/create', payload);
     
     return response.data.data || {};
   } catch (error) {
@@ -185,7 +185,7 @@ const createShippingOrder = async (orderData) => {
  */
 const getShippingOrderDetail = async (orderCode) => {
   try {
-    const response = await ghnClient.post('/shipping-order/detail', {
+    const response = await ghnClient.post('/v2/shipping-order/detail', {
       order_code: orderCode
     });
     
