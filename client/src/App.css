@@ -179,6 +179,45 @@ main {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
+/* Quantity input group styling */
+.quantity-input-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  max-width: 130px;
+}
+
+.quantity-input-group .quantity-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 35px;
+  padding: 0;
+}
+
+.quantity-input-group .quantity-input {
+  text-align: center;
+  width: 50px;
+  height: 35px;
+  padding: 0 5px;
+}
+
+.quantity-input-group .btn {
+  border-radius: 8px;
+}
+
+/* Remove spinner from number input */
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.quantity-input {
+  -moz-appearance: textfield;
+}
+
 /* Form */
 .form-container {
   width: 100%;
