@@ -25,13 +25,14 @@ const MoMoPayment = ({ orderInfo, onPaymentSuccess, onPaymentError, showRetryBut
         throw new Error('Không nhận được URL thanh toán từ MoMo');
       }
 
+      console.log('Received MoMo payment URL:', data.data.payUrl);
       setPaymentData(data.data);
       
-      // Open MoMo payment URL in a new window
-      window.open(data.data.payUrl, '_self');
+      // Open MoMo payment URL in the same window
+      window.location.href = data.data.payUrl;
       
-      // Start checking payment status
-      startPaymentVerification(orderInfo.orderId);
+      // No need to start verification as we're redirecting away
+      // The verification will happen when returning from MoMo
     } catch (error) {
       console.error('Error creating MoMo payment:', error);
       setError(error.response?.data?.message || 'Có lỗi xảy ra khi tạo thanh toán MoMo');

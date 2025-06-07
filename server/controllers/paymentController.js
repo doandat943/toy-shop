@@ -7,7 +7,7 @@ const url = require('url');
 // MoMo API Constants
 const MOMO_API = {
   PROD: 'https://business.momo.vn/api',
-  DEV: 'https://test-business.momo.vn/api',
+  DEV: 'https://test-business.momo.vn/v2/gateway',
   CREATE_PATH: '/v2/gateway/api/create'
 };
 
@@ -360,7 +360,7 @@ const createMomoPayment = async (req, res) => {
     // Prepare data for MoMo API
     const requestId = momoConfig.partnerCode + new Date().getTime();
     const momoOrderId = `${orderId}_${Date.now()}`; // Ensure unique orderId
-    const orderDescription = sanitizeMomoParam(orderInfo || `Thanh toán đơn hàng #${orderId}`);
+    const orderDescription = sanitizeMomoParam(orderInfo || `Thanh toan don hang #${orderId}`);
     const extraData = '';
     const redirectUrl = `http://localhost:3000/order/${orderId}`;
 
@@ -412,18 +412,27 @@ const createMomoPayment = async (req, res) => {
     };
     await order.save();
 
+    // Sử dụng môi trường phù hợp cho MoMo
+    const apiBaseUrl = process.env.MOMO_ENV === 'prod' ? MOMO_API.PROD : MOMO_API.DEV;
+    const apiPath = '/v2/gateway/api/create';
+    
     // Make request to MoMo API
     return new Promise((resolve, reject) => {
       const options = {
-        hostname: getMomoHostname(),
+        hostname: 'test-payment.momo.vn',
         port: 443,
-        path: MOMO_API.CREATE_PATH,
+        path: apiPath,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(requestBody)
         }
       };
+
+      console.log('Making request to MoMo API:', {
+        url: `https://${options.hostname}${options.path}`,
+        body: JSON.parse(requestBody)
+      });
 
       const req = https.request(options, (response) => {
         let data = '';
@@ -434,6 +443,50 @@ const createMomoPayment = async (req, res) => {
         
         response.on('end', () => {
           try {
+            // Check if response is HTML (likely an error page)
+            if (data.includes('<!DOCTYPE html>') || data.includes('<html>')) {
+              console.error('Received HTML response from MoMo instead of JSON:', data);
+              
+              // Thông báo lỗi chi tiết hơn
+              let errorMessage = 'MoMo API returned HTML instead of JSON. ';
+              if (data.includes('403 Forbidden')) {
+                errorMessage += 'Access forbidden - check if your API credentials are correct and whitelisted.';
+              } else if (data.includes('404 Not Found')) {
+                errorMessage += 'API endpoint not found - check the API URL path.';
+              } else {
+                errorMessage += 'Check API credentials and endpoint configuration.';
+              }
+              
+              res.status(400).json({
+                success: false,
+                message: errorMessage,
+                rawData: data
+              });
+              return resolve();
+            }
+            
+            // Temporarily disable mock payment flow for testing real MoMo flow
+            // if (process.env.NODE_ENV === 'development' && process.env.MOMO_ENV === 'dev') {
+            //   console.log('Development mode: Using mock payment flow');
+            //   
+            //   // Tạo URL giả để thử nghiệm
+            //   const mockPayUrl = `http://localhost:3000/checkout/payment-result?orderId=${orderId}&momoOrderId=${momoOrderId}&resultCode=0`;
+            //   
+            //   res.json({
+            //     success: true,
+            //     data: {
+            //       payUrl: mockPayUrl,
+            //       orderId: orderId,
+            //       momoOrderId: momoOrderId,
+            //       requestId: requestId,
+            //       message: 'NOTE: Running in development mode with mock payment'
+            //     }
+            //   });
+            //   
+            //   return resolve();
+            // }
+            
+            // Mô trường production hoặc staging thực tế
             const result = JSON.parse(data);
             console.log('MoMo API response:', result);
             

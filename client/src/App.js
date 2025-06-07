@@ -12,6 +12,7 @@ import RegisterPage from './pages/RegisterPage';
 import OrderPage from './pages/OrderPage';
 import OrdersPage from './pages/OrdersPage';
 import OrderStatusPage from './pages/OrderStatusPage';
+import PaymentResultPage from './pages/PaymentResultPage';
 import PrivateRoute from './components/PrivateRoute';
 import AdminRoute from './components/AdminRoute';
 import BirthdayGiftFinderPage from './pages/BirthdayGiftFinderPage';
@@ -87,6 +88,7 @@ const App = () => {
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/wishlist" element={<WishlistPage />} />
+                      <Route path="/checkout/payment-result" element={<PaymentResultPage />} />
                     </Route>
 
                     {/* Special features */}
