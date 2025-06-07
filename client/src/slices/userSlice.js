@@ -232,6 +232,42 @@ export const getUsers = createAsyncThunk(
   }
 );
 
+// Get user by ID (admin)
+export const getUserById = createAsyncThunk(
+  'user/getUserById',
+  async (id, { getState, rejectWithValue }) => {
+    try {
+      const { user } = getState().user;
+
+      if (!user || !user.token) {
+        return rejectWithValue('Không có token xác thực. Vui lòng đăng nhập lại.');
+      }
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'x-auth-token': user.token
+        }
+      };
+
+      const { data } = await axios.get(
+        `http://localhost:5000/api/users/${id}`,
+        config
+      );
+      
+      return data.data;
+    } catch (error) {
+      console.error('Error in getUserById:', error.response || error);
+      
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
+    }
+  }
+);
+
 // Update user status (admin)
 export const updateUserStatus = createAsyncThunk(
   'user/updateUserStatus',
@@ -260,6 +296,115 @@ export const updateUserStatus = createAsyncThunk(
       return data.data;
     } catch (error) {
       console.error('Error in updateUserStatus:', error.response || error);
+      
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
+    }
+  }
+);
+
+// Create user (admin)
+export const createUser = createAsyncThunk(
+  'user/createUser',
+  async (userData, { getState, rejectWithValue }) => {
+    try {
+      const { user } = getState().user;
+
+      if (!user || !user.token) {
+        return rejectWithValue('Không có token xác thực. Vui lòng đăng nhập lại.');
+      }
+
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`,
+          'x-auth-token': user.token
+        }
+      };
+
+      const { data } = await axios.post(
+        'http://localhost:5000/api/users',
+        userData,
+        config
+      );
+
+      return data.data;
+    } catch (error) {
+      console.error('Error in createUser:', error.response || error);
+      
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
+    }
+  }
+);
+
+// Update user (admin)
+export const updateUser = createAsyncThunk(
+  'user/updateUser',
+  async ({ id, userData }, { getState, rejectWithValue }) => {
+    try {
+      const { user } = getState().user;
+
+      if (!user || !user.token) {
+        return rejectWithValue('Không có token xác thực. Vui lòng đăng nhập lại.');
+      }
+
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`,
+          'x-auth-token': user.token
+        }
+      };
+
+      const { data } = await axios.put(
+        `http://localhost:5000/api/users/${id}`,
+        userData,
+        config
+      );
+
+      return data.data;
+    } catch (error) {
+      console.error('Error in updateUser:', error.response || error);
+      
+      return rejectWithValue(
+        error.response && error.response.data.message
+          ? error.response.data.message
+          : error.message
+      );
+    }
+  }
+);
+
+// Delete user (admin)
+export const deleteUser = createAsyncThunk(
+  'user/deleteUser',
+  async (id, { getState, rejectWithValue }) => {
+    try {
+      const { user } = getState().user;
+
+      if (!user || !user.token) {
+        return rejectWithValue('Không có token xác thực. Vui lòng đăng nhập lại.');
+      }
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'x-auth-token': user.token
+        }
+      };
+
+      await axios.delete(`http://localhost:5000/api/users/${id}`, config);
+
+      return id;
+    } catch (error) {
+      console.error('Error in deleteUser:', error.response || error);
       
       return rejectWithValue(
         error.response && error.response.data.message
@@ -470,6 +615,20 @@ export const userSlice = createSlice({
         state.error = action.payload;
       })
 
+      // Get user by ID (admin)
+      .addCase(getUserById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUserById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = [...state.users, action.payload];
+      })
+      .addCase(getUserById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
       // Update user status (admin)
       .addCase(updateUserStatus.pending, (state) => {
         state.loading = true;
@@ -491,6 +650,50 @@ export const userSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.updateSuccess = false;
+      })
+
+      // Create user (admin)
+      .addCase(createUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = [...state.users, action.payload];
+      })
+      .addCase(createUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Update user (admin)
+      .addCase(updateUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = state.users.map(user => 
+          user.id === action.payload.id ? action.payload : user
+        );
+      })
+      .addCase(updateUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Delete user (admin)
+      .addCase(deleteUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = state.users.filter(user => user.id !== action.payload);
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
 
       // Change password

@@ -29,6 +29,7 @@ import ProductsListPage from './pages/admin/ProductsListPage';
 import ProductFormPage from './pages/admin/ProductFormPage';
 import PromotionsPage from './pages/admin/PromotionsPage';
 import CustomersListPage from './pages/admin/CustomersListPage';
+import CustomerFormPage from './pages/admin/CustomerFormPage';
 import CarouselManagementPage from './pages/admin/CarouselManagementPage';
 import AdminShippingPanel from './pages/admin/AdminShippingPanel';
 
@@ -50,10 +51,12 @@ const App = () => {
             <Route path="orders" element={<OrdersListPage />} />
             <Route path="orders/:id" element={<OrderDetailPage />} />
             <Route path="products" element={<ProductsListPage />} />
-            <Route path="products/new" element={<ProductFormPage />} />
-            <Route path="products/edit/:id" element={<ProductFormPage />} />
+            <Route path="product/create" element={<ProductFormPage />} />
+            <Route path="product/:id/edit" element={<ProductFormPage />} />
             <Route path="promotions" element={<PromotionsPage />} />
             <Route path="customers" element={<CustomersListPage />} />
+            <Route path="customer/create" element={<CustomerFormPage />} />
+            <Route path="customer/:id/edit" element={<CustomerFormPage />} />
             <Route path="carousel" element={<CarouselManagementPage />} />
             <Route path="shipping" element={<AdminShippingPanel />} />
           </Route>

@@ -99,7 +99,7 @@ const ProductFormPage = () => {
             ? JSON.stringify(product.personalizationOptions, null, 2)
             : ''
         );
-        setTags(product.tags ? product.tags.join(', ') : '');
+        setTags(Array.isArray(product.tags) ? product.tags.join(', ') : product.tags || '');
         setVideoUrl(product.videoUrl || '');
       }
     }
@@ -199,7 +199,7 @@ const ProductFormPage = () => {
     formData.append('educationalValue', educationalValue);
     formData.append('isPersonalizable', isPersonalizable);
     formData.append('personalizationOptions', personalizationOptions);
-    formData.append('tags', tags.split(',').map(tag => tag.trim()));
+    formData.append('tags', JSON.stringify(tags.split(',').map(tag => tag.trim())));
     formData.append('videoUrl', videoUrl);
     
     // Append files

@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Table, Button, Row, Col, Form, InputGroup, Badge, Card } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
-import { FaSearch, FaEye, FaEdit, FaUserPlus, FaEnvelope, FaPhone, FaCalendarAlt } from 'react-icons/fa';
+import { FaSearch, FaEye, FaEdit, FaUserPlus, FaEnvelope, FaPhone, FaCalendarAlt, FaTrash } from 'react-icons/fa';
 import Loader from '../../components/Loader';
 import Message from '../../components/Message';
 import Meta from '../../components/Meta';
 import Paginate from '../../components/Paginate';
-import { getUsers, updateUserStatus } from '../../slices/userSlice';
+import { getUsers, updateUserStatus, deleteUser } from '../../slices/userSlice';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const CustomersListPage = () => {
@@ -15,6 +15,7 @@ const CustomersListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newStatus, setNewStatus] = useState(true);
   const [expandedUserId, setExpandedUserId] = useState(null);
@@ -62,6 +63,18 @@ const CustomersListPage = () => {
     if (selectedUser) {
       dispatch(updateUserStatus({ id: selectedUser.id, isActive: newStatus }));
       setShowStatusModal(false);
+    }
+  };
+
+  const handleDeleteClick = (user) => {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedUser) {
+      dispatch(deleteUser(selectedUser.id));
+      setShowDeleteModal(false);
     }
   };
 
@@ -202,9 +215,17 @@ const CustomersListPage = () => {
                         <Button
                           variant={user.isActive ? 'danger' : 'success'}
                           size="sm"
+                          className="me-2"
                           onClick={() => handleStatusChange(user.id, !user.isActive)}
                         >
                           {user.isActive ? 'Khóa' : 'Mở khóa'}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDeleteClick(user)}
+                        >
+                          <FaTrash />
                         </Button>
                       </div>
                     </td>
@@ -298,6 +319,18 @@ const CustomersListPage = () => {
         confirmText="Xác nhận"
         cancelText="Hủy"
         confirmVariant={newStatus ? 'success' : 'danger'}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Xóa tài khoản"
+        message={`Bạn có chắc chắn muốn xóa tài khoản của khách hàng ${selectedUser?.name}?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        confirmVariant="danger"
       />
     </>
   );
