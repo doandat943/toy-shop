@@ -67,7 +67,7 @@ const OrdersListPage = () => {
 
   const confirmStatusChange = () => {
     if (selectedOrder && newStatus) {
-      dispatch(updateOrderStatus({ id: selectedOrder.id, status: newStatus }));
+      dispatch(updateOrderStatus({ orderId: selectedOrder.id, status: newStatus }));
       setShowStatusModal(false);
     }
   };

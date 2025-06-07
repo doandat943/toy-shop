@@ -252,9 +252,11 @@ export const getOrderById = createAsyncThunk(
   'order/getOrderById',
   async (orderId, { getState, rejectWithValue }) => {
     try {
+      console.log('getOrderById action called with orderId:', orderId);
       const { user } = getState().user;
 
       if (!user || !user.token) {
+        console.error('No authentication token found');
         return rejectWithValue('Không có token xác thực. Vui lòng đăng nhập lại.');
       }
 
@@ -265,12 +267,18 @@ export const getOrderById = createAsyncThunk(
         },
       };
 
-      const { data } = await axios.get(`http://localhost:5000/api/orders/${orderId}`, config);
+      console.log('Making API request to:', `http://localhost:5000/api/orders/${orderId}`);
+      const response = await axios.get(`http://localhost:5000/api/orders/${orderId}`, config);
+      console.log('API response received:', response);
+      
+      const { data } = response;
       
       if (!data || !data.success) {
+        console.error('API response not successful:', data);
         return rejectWithValue('Không thể lấy thông tin đơn hàng');
       }
       
+      console.log('Returning order data:', data.data);
       return data.data;
     } catch (error) {
       console.error('Error in getOrderById:', error.response || error);
@@ -472,9 +480,35 @@ const orderSlice = createSlice({
         state.success = true;
         state.updateSuccess = true;
         state.orderDetails = action.payload;
-        state.orders = state.orders.map((order) =>
-          order.id === action.payload.id ? action.payload : order
-        );
+        
+        try {
+          // Đảm bảo action.payload tồn tại và có id
+          if (!action.payload || typeof action.payload.id === 'undefined') {
+            console.warn('updateOrderStatus.fulfilled - Missing payload or id');
+            return;
+          }
+          
+          // Đảm bảo state.orders là mảng
+          if (!Array.isArray(state.orders)) {
+            console.warn('updateOrderStatus.fulfilled - state.orders is not an array');
+            state.orders = [];
+            return;
+          }
+          
+          // Dùng cách sáng tạo hơn không dùng map để tránh lỗi
+          const updatedOrders = [];
+          for (let i = 0; i < state.orders.length; i++) {
+            const order = state.orders[i];
+            if (order && order.id === action.payload.id) {
+              updatedOrders.push(action.payload);
+            } else {
+              updatedOrders.push(order);
+            }
+          }
+          state.orders = updatedOrders;
+        } catch (err) {
+          console.error('Error updating order status in orders list:', err);
+        }
       })
       .addCase(updateOrderStatus.rejected, (state, action) => {
         state.loading = false;
@@ -485,14 +519,19 @@ const orderSlice = createSlice({
       .addCase(getOrderById.pending, (state) => {
         state.loading = true;
         state.error = null;
+        console.log('getOrderById.pending - Current state:', state);
       })
       .addCase(getOrderById.fulfilled, (state, action) => {
+        console.log('getOrderById.fulfilled - Action payload:', action.payload);
         state.loading = false;
         state.orderDetails = action.payload;
+        console.log('getOrderById.fulfilled - Updated state:', state);
       })
       .addCase(getOrderById.rejected, (state, action) => {
+        console.log('getOrderById.rejected - Rejection payload:', action.payload);
         state.loading = false;
         state.error = action.payload;
+        console.log('getOrderById.rejected - Updated state with error:', state);
       })
 
       // Update tracking info
@@ -506,11 +545,33 @@ const orderSlice = createSlice({
         state.success = true;
         state.orderDetails = action.payload;
         
-        // Cập nhật đơn hàng trong danh sách nếu có
-        if (action.payload && action.payload.id) {
-          state.orders = state.orders.map(order => 
-            order.id === action.payload.id ? action.payload : order
-          );
+        try {
+          // Đảm bảo action.payload tồn tại và có id
+          if (!action.payload || typeof action.payload.id === 'undefined') {
+            console.warn('updateTrackingInfo.fulfilled - Missing payload or id');
+            return;
+          }
+          
+          // Đảm bảo state.orders là mảng
+          if (!Array.isArray(state.orders)) {
+            console.warn('updateTrackingInfo.fulfilled - state.orders is not an array');
+            state.orders = [];
+            return;
+          }
+          
+          // Dùng cách sáng tạo hơn không dùng map để tránh lỗi
+          const updatedOrders = [];
+          for (let i = 0; i < state.orders.length; i++) {
+            const order = state.orders[i];
+            if (order && order.id === action.payload.id) {
+              updatedOrders.push(action.payload);
+            } else {
+              updatedOrders.push(order);
+            }
+          }
+          state.orders = updatedOrders;
+        } catch (err) {
+          console.error('Error updating tracking info in orders list:', err);
         }
       })
       .addCase(updateTrackingInfo.rejected, (state, action) => {

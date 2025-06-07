@@ -22,15 +22,29 @@ const config = {
   baseURL: process.env.GHN_ENV === 'dev' ? GHN_API.DEV : GHN_API.PROD,
 };
 
-// Create GHN API client
+// Create GHN API client with interceptor to ensure headers are set for each request
 const ghnClient = axios.create({
   baseURL: config.baseURL,
   headers: {
-    'Content-Type': 'application/json',
-    'Token': config.token,
-    'ShopId': config.shopId
+    'Content-Type': 'application/json'
   }
 });
+
+// Add request interceptor to set Token and ShopId headers for each request
+ghnClient.interceptors.request.use(
+  (config) => {
+    // Always set fresh headers in case token or shop ID are updated
+    config.headers['Token'] = process.env.GHN_TOKEN;
+    config.headers['ShopId'] = process.env.GHN_SHOP_ID ? parseInt(process.env.GHN_SHOP_ID) : 0;
+    
+    console.log('GHN API Request Headers:', JSON.stringify(config.headers));
+    return config;
+  },
+  (error) => {
+    console.error('GHN API Request Error:', error);
+    return Promise.reject(error);
+  }
+);
 
 /**
  * Get list of provinces
@@ -133,15 +147,46 @@ const calculateShippingFee = async (data) => {
  */
 const createShippingOrder = async (orderData) => {
   try {
+    // Store configuration - should be moved to environment variables or database settings
+    const STORE_CONFIG = {
+      name: "BabyBon Shop",
+      phone: "0987654321",
+      address: "123 Đường Nguyễn Huệ",
+      ward_name: "Phường Bến Nghé",
+      district_name: "Quận 1",
+      province_name: "TP Hồ Chí Minh",
+      ward_code: "20108", // Default ward code for the shop
+      district_id: 1442 // Default district ID for the shop (Q1, HCMC)
+    };
+
+    // Build the complete payload with required fields from GHN API docs
     const payload = {
-      payment_type_id: orderData.paymentTypeId || 2, // 1: Shop/Seller, 2: Buyer/Consignee
-      note: orderData.note || '',
-      required_note: orderData.requiredNote || 'KHONGCHOXEMHANG',
+      // Sender information (required)
+      from_name: STORE_CONFIG.name,
+      from_phone: STORE_CONFIG.phone,
+      from_address: STORE_CONFIG.address,
+      from_ward_name: STORE_CONFIG.ward_name,
+      from_district_name: STORE_CONFIG.district_name,
+      from_province_name: STORE_CONFIG.province_name,
+      
+      // Return information
+      return_phone: STORE_CONFIG.phone,
+      return_address: STORE_CONFIG.address,
+      return_district_id: STORE_CONFIG.district_id,
+      return_ward_code: STORE_CONFIG.ward_code,
+      
+      // Receiver information
       to_name: orderData.toName,
       to_phone: orderData.toPhone,
       to_address: orderData.toAddress,
       to_ward_code: orderData.toWardCode,
       to_district_id: orderData.toDistrictId,
+      
+      // Order information
+      payment_type_id: orderData.paymentTypeId || 2, // 1: Shop/Seller, 2: Buyer/Consignee
+      note: orderData.note || '',
+      required_note: orderData.requiredNote || 'KHONGCHOXEMHANG',
+      client_order_code: orderData.orderNumber, // Use the order number as client order code
       cod_amount: orderData.codAmount || 0,
       content: orderData.content || `Đơn hàng ${orderData.orderNumber}`,
       weight: orderData.weight || 500,
@@ -150,7 +195,6 @@ const createShippingOrder = async (orderData) => {
       height: orderData.height || 10,
       service_id: orderData.serviceId,
       service_type_id: orderData.serviceTypeId || 2,
-      payment_type_id: orderData.paymentTypeId || 2,
       insurance_value: orderData.insuranceValue || 0,
       coupon: orderData.coupon || null
     };
@@ -165,12 +209,18 @@ const createShippingOrder = async (orderData) => {
         weight: item.weight || 500,
         length: item.length || 10,
         width: item.width || 10,
-        height: item.height || 10
+        height: item.height || 10,
+        category: {
+          level1: "Đồ chơi trẻ em"
+        }
       }));
     }
     
+    console.log('Creating GHN shipping order with payload:', JSON.stringify(payload, null, 2));
+    
     const response = await ghnClient.post('/v2/shipping-order/create', payload);
     
+    console.log('GHN shipping order created:', response.data);
     return response.data.data || {};
   } catch (error) {
     console.error('GHN API Error (createShippingOrder):', error.response?.data || error.message);

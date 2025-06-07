@@ -41,14 +41,34 @@ const OrderDetailPage = () => {
   });
   const [showTrackingModal, setShowTrackingModal] = useState(false);
 
-  const { order, loading, error, updateSuccess } = useSelector(
+  const { orderDetails: order, loading, error, updateSuccess } = useSelector(
     (state) => state.order
   );
+  
+  console.log('OrderDetailPage render - Redux state:', useSelector(state => state.order));
+  console.log('OrderDetailPage render - Extracted order:', order);
 
+  // Get full Redux state for debugging
+  const fullState = useSelector((state) => state);
+  
   useEffect(() => {
-    if (!order || order.id !== parseInt(id) || updateSuccess) {
-      dispatch(getOrderById(id));
-    } else {
+    console.log('OrderDetailPage useEffect - Current order:', order);
+    console.log('OrderDetailPage useEffect - Order ID param:', id);
+    console.log('OrderDetailPage useEffect - Redux state:', fullState);
+
+    // Nếu không có order, hoặc order.id khác với param, hoặc vừa cập nhật thành công
+    // --> dispatch action để lấy thông tin order
+    if (!order || (order && order.id !== parseInt(id)) || updateSuccess) {
+      console.log('Dispatching getOrderById action with ID:', id);
+      dispatch(getOrderById(id))
+        .then(result => {
+          console.log('getOrderById result:', result);
+        })
+        .catch(error => {
+          console.error('getOrderById error:', error);
+        });
+    } else if (order) { // Chỉ xử lý tiếp nếu order tồn tại
+      console.log('Order already loaded:', order);
       // Initialize tracking info from order if available
       if (order.trackingNumber) {
         setTrackingInfo({
@@ -57,7 +77,7 @@ const OrderDetailPage = () => {
         });
       }
     }
-  }, [dispatch, id, order, updateSuccess]);
+  }, [dispatch, id, order, updateSuccess, fullState]);
 
   const handleStatusChange = (status) => {
     setNewStatus(status);
@@ -66,7 +86,7 @@ const OrderDetailPage = () => {
 
   const confirmStatusChange = () => {
     if (newStatus) {
-      dispatch(updateOrderStatus({ id: id, status: newStatus }));
+      dispatch(updateOrderStatus({ orderId: id, status: newStatus }));
       setShowStatusModal(false);
     }
   };
@@ -187,18 +207,33 @@ const OrderDetailPage = () => {
                     </Col>
                     <Col md={6}>
                       <h6>Thông tin giao hàng</h6>
-                      <p className="mb-1">
-                        <strong>Địa chỉ:</strong> {order.shippingAddress}
-                      </p>
-                      <p className="mb-1">
-                        <strong>Phường/Xã:</strong> {order.ward}
-                      </p>
-                      <p className="mb-1">
-                        <strong>Quận/Huyện:</strong> {order.district}
-                      </p>
-                      <p className="mb-1">
-                        <strong>Tỉnh/Thành phố:</strong> {order.city}
-                      </p>
+                      {(() => {
+                        let shippingAddressObj;
+                        try {
+                          shippingAddressObj = typeof order.shippingAddress === 'string' 
+                            ? JSON.parse(order.shippingAddress) 
+                            : order.shippingAddress;
+                        } catch (e) {
+                          console.error('Error parsing shipping address:', e);
+                          shippingAddressObj = {};
+                        }
+                        return (
+                          <>
+                            <p className="mb-1">
+                              <strong>Địa chỉ:</strong> {shippingAddressObj?.address || 'N/A'}
+                            </p>
+                            <p className="mb-1">
+                              <strong>Phường/Xã:</strong> {shippingAddressObj?.wardName || order.ward || 'N/A'}
+                            </p>
+                            <p className="mb-1">
+                              <strong>Quận/Huyện:</strong> {shippingAddressObj?.districtName || order.district || 'N/A'}
+                            </p>
+                            <p className="mb-1">
+                              <strong>Tỉnh/Thành phố:</strong> {shippingAddressObj?.provinceName || order.city || 'N/A'}
+                            </p>
+                          </>
+                        );
+                      })()}
                     </Col>
                   </Row>
                   

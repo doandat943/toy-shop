@@ -7,7 +7,8 @@ const {
   updateOrderStatus,
   deleteOrder,
   getMyOrders,
-  getOrderStats
+  getOrderStats,
+  updateOrderTracking
 } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/auth');
 
@@ -36,10 +37,15 @@ router.post('/', protect, createOrder);
 // @access  Private
 router.get('/:id', protect, getOrderById);
 
-// @route   PUT /api/orders/:id
+// @route   PUT /api/orders/:id/status
 // @desc    Update order status
 // @access  Private/Admin
-router.put('/:id', protect, admin, updateOrderStatus);
+router.put('/:id/status', protect, admin, updateOrderStatus);
+
+// @route   PUT /api/orders/:id/tracking
+// @desc    Update order tracking information
+// @access  Private/Admin
+router.put('/:id/tracking', protect, admin, updateOrderTracking);
 
 // @route   DELETE /api/orders/:id
 // @desc    Delete order

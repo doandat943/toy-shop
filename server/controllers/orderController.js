@@ -217,7 +217,7 @@ const updateOrderStatus = async (req, res) => {
     const { status } = req.body;
 
     // Validate status
-    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const validStatuses = ['pending', 'processing', 'shipping', 'shipped', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
@@ -484,6 +484,78 @@ const getOrderStats = async (req, res) => {
   }
 };
 
+// @desc    Update order tracking information
+// @route   PUT /api/orders/:id/tracking
+// @access  Private/Admin
+const updateOrderTracking = async (req, res) => {
+  try {
+    const { trackingNumber, shippingProvider } = req.body;
+    
+    if (!trackingNumber || !shippingProvider) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tracking number and shipping provider are required'
+      });
+    }
+
+    const order = await Order.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email', 'phone']
+        },
+        {
+          model: OrderItem,
+          as: 'orderItems',
+          include: [
+            {
+              model: Product, 
+              as: 'product',
+              attributes: ['id', 'name', 'thumbnail', 'price']
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Update tracking info
+    order.trackingNumber = trackingNumber;
+    order.shippingProvider = shippingProvider;
+    
+    // If not already shipped, set shipped date
+    if (!order.shippedAt && order.status !== 'cancelled') {
+      order.shippedAt = new Date();
+      // Automatically update status to shipping if it's not already shipped or delivered
+      if (order.status !== 'shipping' && order.status !== 'delivered') {
+        order.status = 'shipping';
+      }
+    }
+
+    await order.save();
+
+    res.json({
+      success: true,
+      message: 'Order tracking information updated',
+      data: order
+    });
+  } catch (error) {
+    console.error('Error updating tracking info:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getOrders,
   getOrderById,
@@ -491,5 +563,6 @@ module.exports = {
   updateOrderStatus,
   deleteOrder,
   getMyOrders,
-  getOrderStats
+  getOrderStats,
+  updateOrderTracking
 }; 

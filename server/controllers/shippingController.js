@@ -190,7 +190,7 @@ const createShippingOrder = async (req, res) => {
             {
               model: Product,
               as: 'product',
-              attributes: ['id', 'name', 'weight', 'length', 'width', 'height']
+              attributes: ['id', 'name', 'weight'] // Removed length, width, height
             }
           ]
         }
@@ -216,30 +216,26 @@ const createShippingOrder = async (req, res) => {
       });
     }
 
-    // Calculate total weight and dimensions
+    // Calculate total weight and dimensions - using default values for dimensions
     let totalWeight = 0;
-    let maxLength = 10;
-    let maxWidth = 10;
-    let maxHeight = 10;
+    // Using default dimensions of 20x20x20 as requested
+    const defaultLength = 20;
+    const defaultWidth = 20; 
+    const defaultHeight = 20;
 
     const items = order.orderItems.map(item => {
       const itemWeight = item.product?.weight || 500;
       totalWeight += itemWeight * item.quantity;
       
-      // Track maximum dimensions
-      maxLength = Math.max(maxLength, item.product?.length || 10);
-      maxWidth = Math.max(maxWidth, item.product?.width || 10);
-      maxHeight = Math.max(maxHeight, item.product?.height || 10);
-
       return {
         name: item.name,
         productId: item.productId,
         quantity: item.quantity,
-        price: item.price,
-        weight: itemWeight,
-        length: item.product?.length || 10,
-        width: item.product?.width || 10,
-        height: item.product?.height || 10
+        price: parseInt(item.price),
+        weight: parseInt(itemWeight),
+        length: parseInt(defaultLength),
+        width: parseInt(defaultWidth),
+        height: parseInt(defaultHeight)
       };
     });
 
@@ -254,9 +250,9 @@ const createShippingOrder = async (req, res) => {
       codAmount: order.paymentMethod === 'cod' ? parseInt(order.totalAmount) : 0,
       content: `Đơn hàng ${order.orderNumber}`,
       weight: totalWeight || 500,
-      length: maxLength,
-      width: maxWidth,
-      height: maxHeight,
+      length: defaultLength,
+      width: defaultWidth,
+      height: defaultHeight,
       insuranceValue: parseInt(order.totalAmount),
       serviceId: parseInt(serviceId),
       serviceTypeId: serviceTypeId ? parseInt(serviceTypeId) : 2,
