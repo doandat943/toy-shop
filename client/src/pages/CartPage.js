@@ -1,19 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Row, Col, ListGroup, Image, Form, Button, Card, Accordion, Tab, Nav, Alert, Spinner } from 'react-bootstrap';
-import { FaTrash, FaPlus, FaMinus, FaMoneyBillAlt, FaCreditCard, FaPaypal, FaTruck, FaQrcode, FaTimes } from 'react-icons/fa';
+import { Row, Col, ListGroup, Image, Form, Button, Card, Accordion, Tab, Nav, Spinner, Alert } from 'react-bootstrap';
+import { FaTrash, FaPlus, FaMinus, FaMoneyBillAlt, FaCreditCard, FaPaypal, FaTruck, FaQrcode } from 'react-icons/fa';
 import { addToCart, removeFromCart, updateCartItemQty, applyPromoCode, resetPromoCode, saveShippingAddress, savePaymentMethod, clearCart } from '../slices/cartSlice';
-import { resetShippingAddress } from '../slices/shippingSlice';
-import { createOrder } from '../slices/orderSlice';
-import { applyPromo, removePromo } from '../slices/promoSlice';
 import Message from '../components/Message';
 import ImageWithFallback from '../components/ImageWithFallback';
 import { formatPrice } from '../utils/formatPrice';
 import MoMoPayment from '../components/MoMoPayment';
 import axios from 'axios';
-import { toast } from 'react-toastify';
-import GHNShippingCalculator from '../components/shipping/GHNShippingCalculator';
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -22,18 +17,29 @@ const CartPage = () => {
 
   const { cartItems, loading, error, promoCode, promoCodeError, promoCodeLoading, itemsPrice, shippingPrice, taxPrice, discountAmount, totalPrice, shippingAddress } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.user);
-  const { shippingAddress: shippingAddressSlice } = useSelector((state) => state.shipping);
-  const { promo } = useSelector((state) => state.promo);
   
   const [promoInput, setPromoInputVal] = useState('');
   
   // Shipping form state
-  const [fullName, setFullName] = useState(shippingAddressSlice?.fullName || user?.name || '');
-  const [address, setAddress] = useState(shippingAddressSlice?.address || '');
-  const [city, setCity] = useState(shippingAddressSlice?.city || '');
-  const [postalCode, setPostalCode] = useState(shippingAddressSlice?.postalCode || '');
-  const [phone, setPhone] = useState(shippingAddressSlice?.phone || user?.phone || '');
-  const [note, setNote] = useState(shippingAddressSlice?.note || '');
+  const [fullName, setFullName] = useState(shippingAddress?.fullName || user?.name || '');
+  const [address, setAddress] = useState(shippingAddress?.address || '');
+  const [city, setCity] = useState(shippingAddress?.city || '');
+  const [postalCode, setPostalCode] = useState(shippingAddress?.postalCode || '');
+  const [phone, setPhone] = useState(shippingAddress?.phone || user?.phone || '');
+  const [note, setNote] = useState(shippingAddress?.note || '');
+  
+  // GHN shipping state
+  const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([]);
+  const [selectedProvince, setSelectedProvince] = useState(shippingAddress?.provinceId || '');
+  const [selectedDistrict, setSelectedDistrict] = useState(shippingAddress?.districtId || '');
+  const [selectedWard, setSelectedWard] = useState(shippingAddress?.wardCode || '');
+  const [shippingServices, setShippingServices] = useState([]);
+  const [selectedService, setSelectedService] = useState('');
+  const [shippingFee, setShippingFee] = useState(0);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [loadingServices, setLoadingServices] = useState(false);
   
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState('cod');
@@ -45,53 +51,28 @@ const CartPage = () => {
   const [validated, setValidated] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
 
-  // Thêm các state mới cho GHN
-  const [provinces, setProvinces] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [selectedProvince, setSelectedProvince] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [selectedWard, setSelectedWard] = useState('');
-  const [selectedShippingService, setSelectedShippingService] = useState(null);
-  const [loadingLocations, setLoadingLocations] = useState(false);
-
   useEffect(() => {
     if (id) {
       dispatch(addToCart({ id, qty: 1 }));
       navigate('/cart', { replace: true });
     }
   }, [dispatch, id, navigate]);
-
-  useEffect(() => {
-    if (shippingAddressSlice) {
-      setFullName(shippingAddressSlice.fullName || '');
-      setPhone(shippingAddressSlice.phone || '');
-      setAddress(shippingAddressSlice.address || '');
-      setCity(shippingAddressSlice.city || '');
-      setPostalCode(shippingAddressSlice.postalCode || '');
-      setSelectedProvince(shippingAddressSlice.provinceId || '');
-      setSelectedDistrict(shippingAddressSlice.districtId || '');
-      setSelectedWard(shippingAddressSlice.wardCode || '');
-    } else if (user) {
-      setFullName(user.name || '');
-      setPhone(user.phone || '');
-    }
-  }, [shippingAddressSlice, user]);
-
+  
   // Fetch provinces on component mount
   useEffect(() => {
     const fetchProvinces = async () => {
       try {
-        setLoadingLocations(true);
+        setLoadingLocation(true);
         const { data } = await axios.get('/api/shipping/provinces');
         if (data.success && data.data) {
           setProvinces(data.data);
+        } else {
+          console.error('Failed to fetch provinces:', data);
         }
       } catch (error) {
         console.error('Error fetching provinces:', error);
-        toast.error('Không thể lấy danh sách tỉnh/thành phố');
       } finally {
-        setLoadingLocations(false);
+        setLoadingLocation(false);
       }
     };
 
@@ -100,14 +81,15 @@ const CartPage = () => {
 
   // Fetch districts when province changes
   useEffect(() => {
+    if (!selectedProvince) {
+      setDistricts([]);
+      setSelectedDistrict('');
+      return;
+    }
+
     const fetchDistricts = async () => {
-      if (!selectedProvince) {
-        setDistricts([]);
-        return;
-      }
-      
       try {
-        setLoadingLocations(true);
+        setLoadingLocation(true);
         const { data } = await axios.get(`/api/shipping/districts/${selectedProvince}`);
         if (data.success && data.data) {
           setDistricts(data.data);
@@ -115,13 +97,14 @@ const CartPage = () => {
           if (selectedDistrict) {
             setSelectedDistrict('');
             setSelectedWard('');
+            setShippingServices([]);
+            setSelectedService('');
           }
         }
       } catch (error) {
         console.error('Error fetching districts:', error);
-        toast.error('Không thể lấy danh sách quận/huyện');
       } finally {
-        setLoadingLocations(false);
+        setLoadingLocation(false);
       }
     };
 
@@ -130,32 +113,112 @@ const CartPage = () => {
 
   // Fetch wards when district changes
   useEffect(() => {
+    if (!selectedDistrict) {
+      setWards([]);
+      setSelectedWard('');
+      return;
+    }
+
     const fetchWards = async () => {
-      if (!selectedDistrict) {
-        setWards([]);
-        return;
-      }
-      
       try {
-        setLoadingLocations(true);
+        setLoadingLocation(true);
         const { data } = await axios.get(`/api/shipping/wards/${selectedDistrict}`);
         if (data.success && data.data) {
           setWards(data.data);
           // Reset ward when district changes
           if (selectedWard) {
             setSelectedWard('');
+            setShippingServices([]);
+            setSelectedService('');
           }
         }
       } catch (error) {
         console.error('Error fetching wards:', error);
-        toast.error('Không thể lấy danh sách phường/xã');
       } finally {
-        setLoadingLocations(false);
+        setLoadingLocation(false);
       }
     };
 
     fetchWards();
   }, [selectedDistrict]);
+  
+  // Fetch shipping services when district and ward are selected
+  useEffect(() => {
+    if (!selectedDistrict || !selectedWard) {
+      setShippingServices([]);
+      setSelectedService('');
+      return;
+    }
+    
+    const fetchShippingServices = async () => {
+      try {
+        setLoadingServices(true);
+        // Assume shop is in district 1454 (for example)
+        const fromDistrictId = 1454;
+        
+        const { data } = await axios.post('/api/shipping/services', {
+          fromDistrictId,
+          toDistrictId: parseInt(selectedDistrict)
+        });
+        
+        if (data.success && data.data && data.data.length > 0) {
+          setShippingServices(data.data);
+          // Select first service by default
+          setSelectedService(data.data[0].service_id);
+        } else {
+          setShippingServices([]);
+        }
+      } catch (error) {
+        console.error('Error fetching shipping services:', error);
+      } finally {
+        setLoadingServices(false);
+      }
+    };
+    
+    fetchShippingServices();
+  }, [selectedDistrict, selectedWard]);
+  
+  // Calculate shipping fee when service is selected
+  useEffect(() => {
+    if (!selectedService || !selectedDistrict || !selectedWard) {
+      setShippingFee(0);
+      return;
+    }
+    
+    const calculateShippingFee = async () => {
+      try {
+        setLoadingServices(true);
+        // Assume shop is in district 1454 and ward code 21012 (for example)
+        const fromDistrictId = 1454;
+        const fromWardCode = '21012';
+        
+        const { data } = await axios.post('/api/shipping/calculate', {
+          serviceId: selectedService,
+          fromDistrictId,
+          fromWardCode,
+          toDistrictId: parseInt(selectedDistrict),
+          toWardCode: selectedWard,
+          weight: 500, // Default weight in grams
+          length: 15,
+          width: 15,
+          height: 10
+        });
+        
+        if (data.success && data.data) {
+          setShippingFee(data.data.total || 0);
+        } else {
+          setShippingFee(0);
+        }
+      } catch (error) {
+        console.error('Error calculating shipping fee:', error);
+        setShippingFee(0);
+      } finally {
+        setLoadingServices(false);
+      }
+    };
+    
+    calculateShippingFee();
+  }, [selectedService, selectedDistrict, selectedWard]);
 
   const removeFromCartHandler = (itemId) => {
     dispatch(removeFromCart(itemId));
@@ -191,12 +254,12 @@ const CartPage = () => {
   const applyPromoHandler = (e) => {
     e.preventDefault();
     if (promoInput.trim()) {
-      dispatch(applyPromo(promoInput));
+      dispatch(applyPromoCode(promoInput));
     }
   };
 
   const removePromoHandler = () => {
-    dispatch(removePromo());
+    dispatch(resetPromoCode());
     setPromoInputVal('');
   };
 
@@ -210,47 +273,51 @@ const CartPage = () => {
       return;
     }
     
-    // Make sure we have the required GHN fields
+    // Validate GHN required fields
     if (!selectedProvince || !selectedDistrict || !selectedWard) {
-      toast.error('Vui lòng chọn đầy đủ thông tin địa chỉ');
+      alert('Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã');
       return;
     }
-
-    // Find province and district names for readability
+    
+    // Find names for selected locations
     const provinceName = provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName || '';
     const districtName = districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName || '';
     const wardName = wards.find(w => w.WardCode === selectedWard)?.WardName || '';
-
-    dispatch(
-      saveShippingAddress({
-        fullName,
-        phone,
-        address,
-        wardName,
-        wardCode: selectedWard,
-        districtName,
-        districtId: selectedDistrict,
-        provinceName,
-        provinceId: selectedProvince,
-        city,
-        postalCode,
-        note
-      })
-    );
-
+    
+    dispatch(saveShippingAddress({
+      fullName,
+      address,
+      city,
+      postalCode,
+      phone,
+      note,
+      provinceId: selectedProvince,
+      provinceName,
+      districtId: selectedDistrict,
+      districtName,
+      wardCode: selectedWard,
+      wardName
+    }));
+    
     setActiveAccordion('payment');
   };
   
   const handlePaymentSubmit = (e) => {
     e.preventDefault();
     
-    // Make sure we have a shipping service selected
-    if (!selectedShippingService) {
-      toast.error('Vui lòng chọn phương thức vận chuyển');
+    // Validate shipping service selection
+    if (!selectedService) {
+      alert('Vui lòng chọn dịch vụ vận chuyển');
       return;
     }
     
+    dispatch(savePaymentMethod(paymentMethod));
     setActiveAccordion('review');
+  };
+  
+  const calculateTotalPrice = () => {
+    // Tính tổng tiền bao gồm phí vận chuyển GHN
+    return itemsPrice + taxPrice + (selectedService ? shippingFee : 0) - discountAmount;
   };
   
   const placeOrderHandler = async () => {
@@ -262,30 +329,41 @@ const CartPage = () => {
     try {
       setCheckoutError(null);
       
-      // Add shipping service info to the order
+      // Get selected shipping service name
+      const serviceName = shippingServices.find(s => s.service_id === parseInt(selectedService))?.short_name || '';
+      
+      // Prepare order data with modified cart items
       const orderData = {
-        orderItems: cartItems,
+        orderItems: cartItems.map(item => ({
+          ...item,
+          product: item.id,
+          qty: item.qty
+        })),
         shippingAddress: {
           fullName,
-          phone,
           address,
-          wardName: wards.find(w => w.WardCode === selectedWard)?.WardName || '',
-          wardCode: selectedWard,
-          districtName: districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName || '',
-          districtId: selectedDistrict,
-          provinceName: provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName || '',
-          provinceId: selectedProvince,
           city,
           postalCode,
-          note
+          phone,
+          note,
+          provinceId: selectedProvince,
+          provinceName: provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName || '',
+          districtId: selectedDistrict,
+          districtName: districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName || '',
+          wardCode: selectedWard,
+          wardName: wards.find(w => w.WardCode === selectedWard)?.WardName || ''
+        },
+        shippingService: {
+          serviceId: selectedService,
+          serviceName: serviceName,
+          fee: shippingFee
         },
         paymentMethod,
-        shippingService: selectedShippingService,
-        itemsPrice: cartItems.reduce((acc, item) => acc + item.price * item.qty, 0),
-        shippingPrice: selectedShippingService.fee || 0,
-        discountAmount: promo ? promo.discountAmount : 0,
-        promoCode: promo ? promo.code : '',
-        totalAmount: calculateTotalAmount()
+        itemsPrice,
+        shippingPrice: shippingFee,
+        taxPrice,
+        discountAmount,
+        totalPrice: calculateTotalPrice()
       };
       
       // Create the order
@@ -298,7 +376,7 @@ const CartPage = () => {
           
           const res = await axios.post('/api/payment/create-momo-payment', {
             orderId: data.order.id,
-            amount: totalPrice,
+            amount: calculateTotalPrice(),
             orderInfo: `Thanh toán đơn hàng #${data.order.id}`
           });
           
@@ -340,20 +418,6 @@ const CartPage = () => {
     } else {
       setActiveAccordion('shipping');
     }
-  };
-
-  // Thêm phương thức tính tổng tiền bao gồm phí ship
-  const calculateTotalAmount = () => {
-    const itemsTotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-    const discountAmount = promo ? promo.discountAmount : 0;
-    const shippingFee = selectedShippingService?.fee || 0;
-    
-    return itemsTotal - discountAmount + shippingFee;
-  };
-
-  // Thêm phương thức xử lý khi chọn dịch vụ vận chuyển
-  const handleSelectShippingService = (serviceInfo) => {
-    setSelectedShippingService(serviceInfo);
   };
 
   return (
@@ -478,7 +542,17 @@ const CartPage = () => {
                     <ListGroup.Item>
                       <Row>
                         <Col>Phí vận chuyển:</Col>
-                        <Col className="text-end">{formatPrice(shippingPrice)}</Col>
+                        <Col className="text-end">
+                          {selectedService ? (
+                            loadingServices ? (
+                              <Spinner animation="border" size="sm" />
+                            ) : (
+                              formatPrice(shippingFee)
+                            )
+                          ) : (
+                            'Sẽ tính ở bước sau'
+                          )}
+                        </Col>
                       </Row>
                     </ListGroup.Item>
                     <ListGroup.Item>
@@ -500,7 +574,9 @@ const CartPage = () => {
                     <ListGroup.Item className="total-row">
                       <Row>
                         <Col className="fw-bold fs-5">Tổng thanh toán:</Col>
-                        <Col className="text-end fw-bold fs-5">{formatPrice(totalPrice)}</Col>
+                        <Col className="text-end fw-bold fs-5">
+                          {selectedService ? formatPrice(calculateTotalPrice()) : formatPrice(totalPrice)}
+                        </Col>
                       </Row>
                     </ListGroup.Item>
                     
@@ -616,7 +692,7 @@ const CartPage = () => {
                     <Form.Label>Địa chỉ <span className="text-danger">*</span></Form.Label>
                     <Form.Control
                       type="text"
-                      placeholder="Nhập địa chỉ chi tiết (số nhà, đường, ...)"
+                      placeholder="Nhập địa chỉ"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       required
@@ -625,10 +701,10 @@ const CartPage = () => {
                   </Form.Group>
 
                   <Row>
-                    <Col md={12}>
-                      <Form.Group className="mb-3" controlId="province">
+                    <Col md={12} className="mb-3">
+                      <Form.Group controlId="province">
                         <Form.Label>Tỉnh/Thành phố <span className="text-danger">*</span></Form.Label>
-                        {loadingLocations && !provinces.length ? (
+                        {loadingLocation && !provinces.length ? (
                           <div className="text-center py-2">
                             <Spinner animation="border" size="sm" /> Đang tải...
                           </div>
@@ -658,7 +734,7 @@ const CartPage = () => {
                     <Col md={6}>
                       <Form.Group className="mb-3" controlId="district">
                         <Form.Label>Quận/Huyện <span className="text-danger">*</span></Form.Label>
-                        {loadingLocations && selectedProvince && !districts.length ? (
+                        {loadingLocation && selectedProvince && !districts.length ? (
                           <div className="text-center py-2">
                             <Spinner animation="border" size="sm" /> Đang tải...
                           </div>
@@ -686,7 +762,7 @@ const CartPage = () => {
                     <Col md={6}>
                       <Form.Group className="mb-3" controlId="ward">
                         <Form.Label>Phường/Xã <span className="text-danger">*</span></Form.Label>
-                        {loadingLocations && selectedDistrict && !wards.length ? (
+                        {loadingLocation && selectedDistrict && !wards.length ? (
                           <div className="text-center py-2">
                             <Spinner animation="border" size="sm" /> Đang tải...
                           </div>
@@ -714,14 +790,25 @@ const CartPage = () => {
                   </Row>
 
                   <Row>
-                    <Col md={12}>
+                    <Col md={8}>
                       <Form.Group className="mb-3" controlId="city">
-                        <Form.Label>Địa chỉ bổ sung</Form.Label>
+                        <Form.Label>Thông tin bổ sung</Form.Label>
                         <Form.Control
                           type="text"
-                          placeholder="Thông tin thêm để dễ tìm (nếu có)"
+                          placeholder="Thông tin bổ sung (nếu có)"
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group className="mb-3" controlId="postalCode">
+                        <Form.Label>Mã bưu điện</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Nhập mã bưu điện (nếu có)"
+                          value={postalCode}
+                          onChange={(e) => setPostalCode(e.target.value)}
                         />
                       </Form.Group>
                     </Col>
@@ -765,30 +852,78 @@ const CartPage = () => {
           <Accordion.Header>
             <div className="d-flex align-items-center">
               <span className="accordion-number me-3">3</span>
-              <span className="fw-bold">Phương thức vận chuyển và thanh toán</span>
+              <span className="fw-bold">Phương thức thanh toán</span>
             </div>
           </Accordion.Header>
           <Accordion.Body>
             <Row className="justify-content-center">
               <Col md={10} lg={8}>
                 <Form onSubmit={handlePaymentSubmit}>
-                  {/* GHN Shipping Calculator */}
-                  {selectedDistrict && selectedWard ? (
-                    <GHNShippingCalculator 
-                      onSelectService={handleSelectShippingService} 
-                      selectedDistrict={selectedDistrict}
-                      selectedWard={selectedWard}
-                    />
-                  ) : (
-                    <Alert variant="warning">
-                      Vui lòng hoàn thành thông tin địa chỉ giao hàng để xem các phương thức vận chuyển.
-                    </Alert>
-                  )}
-                  
-                  <hr className="my-4" />
-                  
-                  <h5 className="mb-3">Phương thức thanh toán</h5>
+                  {/* Shipping Service Selection */}
+                  <Card className="mb-4">
+                    <Card.Header className="bg-light">
+                      <h5 className="mb-0">Dịch vụ vận chuyển</h5>
+                    </Card.Header>
+                    <Card.Body>
+                      {!selectedDistrict || !selectedWard ? (
+                        <Alert variant="info">
+                          Vui lòng chọn đầy đủ thông tin địa chỉ ở bước trước để xem các dịch vụ vận chuyển
+                        </Alert>
+                      ) : loadingServices ? (
+                        <div className="text-center py-3">
+                          <Spinner animation="border" />
+                          <p className="mt-2">Đang tải dịch vụ vận chuyển...</p>
+                        </div>
+                      ) : shippingServices.length === 0 ? (
+                        <Alert variant="warning">
+                          Không tìm thấy dịch vụ vận chuyển cho khu vực này
+                        </Alert>
+                      ) : (
+                        <>
+                          <Form.Group>
+                            <Form.Label>Chọn dịch vụ vận chuyển:</Form.Label>
+                            <div className="shipping-services-list">
+                              {shippingServices.map((service) => (
+                                <Form.Check
+                                  type="radio"
+                                  key={service.service_id}
+                                  id={`service-${service.service_id}`}
+                                  name="shippingService"
+                                  label={
+                                    <div className="d-flex justify-content-between align-items-center w-100">
+                                      <span>{service.short_name}</span>
+                                      <span className="fw-bold">
+                                        {loadingServices && selectedService === service.service_id ? (
+                                          <Spinner animation="border" size="sm" />
+                                        ) : (
+                                          formatPrice(service.service_id === parseInt(selectedService) ? shippingFee : 0)
+                                        )}
+                                      </span>
+                                    </div>
+                                  }
+                                  checked={selectedService === service.service_id.toString()}
+                                  onChange={() => setSelectedService(service.service_id.toString())}
+                                  className="mb-2 p-2 border-bottom"
+                                />
+                              ))}
+                            </div>
+                          </Form.Group>
+
+                          {selectedService && (
+                            <div className="mt-3">
+                              <p className="mb-1"><strong>Phí vận chuyển:</strong> {formatPrice(shippingFee)}</p>
+                              <p className="text-muted small">
+                                Thời gian giao hàng dự kiến: 2-3 ngày làm việc
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </Card.Body>
+                  </Card>
+
                   <div className="payment-methods-container mb-4">
+                    <h5 className="mb-3">Phương thức thanh toán</h5>
                     <Form.Group>
                       <div className="payment-method-options">
                         <div className="payment-option mb-3">
@@ -906,7 +1041,6 @@ const CartPage = () => {
                       type="submit" 
                       variant="primary"
                       className="px-4"
-                      disabled={!selectedShippingService}
                     >
                       Tiếp tục
                     </Button>
@@ -918,132 +1052,155 @@ const CartPage = () => {
         </Accordion.Item>
 
         {/* ORDER REVIEW SECTION */}
-        <Accordion.Item eventKey="review" className="mb-4">
+        <Accordion.Item eventKey="review">
           <Accordion.Header>
             <div className="d-flex align-items-center">
               <span className="accordion-number me-3">4</span>
-              <span className="fw-bold">Xác nhận đơn hàng</span>
+              <span className="fw-bold">Xác nhận đặt hàng</span>
             </div>
           </Accordion.Header>
           <Accordion.Body>
-            <Row className="justify-content-center">
-              <Col md={10} lg={8}>
-                <Card className="mb-4">
-                  <Card.Header>
-                    <h5 className="mb-0">Thông tin giao hàng</h5>
-                  </Card.Header>
-                  <Card.Body>
-                    <p><strong>Họ tên:</strong> {fullName}</p>
-                    <p><strong>Số điện thoại:</strong> {phone}</p>
-                    <p><strong>Địa chỉ:</strong> {address}</p>
-                    <p><strong>Khu vực:</strong> {wards.find(w => w.WardCode === selectedWard)?.WardName || ''}, {districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName || ''}, {provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName || ''}</p>
-                    {note && <p><strong>Ghi chú:</strong> {note}</p>}
-
-                    <div className="mt-3">
-                      <h6>Phương thức vận chuyển:</h6>
-                      {selectedShippingService && (
-                        <p>
-                          {selectedShippingService.serviceName} - {selectedShippingService.fee.toLocaleString('vi-VN')}₫
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mt-3">
-                      <h6>Phương thức thanh toán:</h6>
-                      {paymentMethod === 'cod' && <p>Thanh toán khi nhận hàng (COD)</p>}
-                      {paymentMethod === 'bank_transfer' && <p>Chuyển khoản ngân hàng</p>}
-                      {paymentMethod === 'momo' && <p>Thanh toán qua MoMo</p>}
-                      {paymentMethod === 'paypal' && <p>PayPal / Thẻ tín dụng</p>}
-                    </div>
-                  </Card.Body>
-                </Card>
-
-                <Card className="mb-4">
-                  <Card.Header>
-                    <h5 className="mb-0">Sản phẩm đặt hàng</h5>
-                  </Card.Header>
-                  <ListGroup variant="flush">
-                    {cartItems.map((item) => (
-                      <ListGroup.Item key={item.id}>
+            {checkoutError && (
+              <Alert variant="danger" className="mb-4">{checkoutError}</Alert>
+            )}
+            <Row>
+              <Col md={8}>
+                <div className="mb-4">
+                  <h5 className="mb-3 border-bottom pb-2">Thông tin đơn hàng</h5>
+                  <ListGroup variant="flush" className="product-list mb-4">
+                    {cartItems.map(item => (
+                      <ListGroup.Item key={item.id} className="px-0 py-3 border-bottom">
                         <Row className="align-items-center">
-                          <Col md={2} xs={3}>
-                            <ImageWithFallback src={item.image} alt={item.name} fluid rounded />
+                          <Col xs={3} md={2}>
+                            <div className="product-image-container">
+                              <ImageWithFallback 
+                                src={item.image} 
+                                fallbackSrc="/images/placeholder.png" 
+                                alt={item.name}
+                                className="img-fluid rounded"
+                              />
+                            </div>
                           </Col>
-                          <Col md={6} xs={5}>
-                            <Link to={`/product/${item.id}`}>{item.name}</Link>
+                          <Col xs={9} md={7}>
+                            <div className="product-info">
+                              <Link to={`/product/${item.id}`} className="product-name">{item.name}</Link>
+                              <div className="text-muted small">Giá: {formatPrice(item.price)}</div>
+                              <div className="text-muted small">Số lượng: {item.qty}</div>
+                            </div>
                           </Col>
-                          <Col md={4} xs={4} className="text-right">
-                            {item.qty} x {formatPrice(item.price)}
+                          <Col xs={12} md={3} className="text-end mt-2 mt-md-0">
+                            <div className="fw-medium">{formatPrice(item.price * item.qty)}</div>
                           </Col>
                         </Row>
                       </ListGroup.Item>
                     ))}
                   </ListGroup>
-                </Card>
 
-                <Card>
-                  <Card.Header>
-                    <h5 className="mb-0">Tổng đơn hàng</h5>
-                  </Card.Header>
-                  <Card.Body>
-                    <ListGroup variant="flush">
-                      <ListGroup.Item>
-                        <Row>
-                          <Col>Tạm tính:</Col>
-                          <Col className="text-right">
-                            {formatPrice(cartItems.reduce((acc, item) => acc + item.price * item.qty, 0))}
-                          </Col>
-                        </Row>
-                      </ListGroup.Item>
-                      
-                      {promoCode && (
-                        <ListGroup.Item>
-                          <Row>
-                            <Col>Giảm giá ({promoCode}):</Col>
-                            <Col className="text-right text-danger">
-                              -{formatPrice(discountAmount)}
-                            </Col>
-                          </Row>
-                        </ListGroup.Item>
-                      )}
-                      
-                      <ListGroup.Item>
-                        <Row>
-                          <Col>Phí vận chuyển:</Col>
-                          <Col className="text-right">
-                            {selectedShippingService ? formatPrice(selectedShippingService.fee) : formatPrice(0)}
-                          </Col>
-                        </Row>
-                      </ListGroup.Item>
-                      
-                      <ListGroup.Item>
-                        <Row>
-                          <Col><strong>Tổng thanh toán:</strong></Col>
-                          <Col className="text-right">
-                            <strong>{formatPrice(calculateTotalAmount())}</strong>
-                          </Col>
-                        </Row>
-                      </ListGroup.Item>
-                    </ListGroup>
-                  </Card.Body>
-                </Card>
-
-                <div className="d-flex justify-content-between mt-4">
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => setActiveAccordion('payment')}
-                    className="px-4"
-                  >
-                    Quay lại
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant="success" 
-                    className="px-4"
-                    onClick={placeOrderHandler}
-                  >
-                    Đặt hàng
-                  </Button>
+                  <Row className="gx-5">
+                    <Col md={6}>
+                      <div className="info-card p-0 mb-4">
+                        <h6 className="mb-3 border-bottom pb-2">
+                          <FaTruck className="me-2 text-muted" /> Thông tin giao hàng
+                        </h6>
+                        <div className="py-1">
+                          <p className="mb-1"><strong>{fullName}</strong></p>
+                          <p className="mb-1">{phone}</p>
+                          <p className="mb-1">{address}</p>
+                          <p className="mb-1">
+                            {wards.find(w => w.WardCode === selectedWard)?.WardName}, {districts.find(d => d.DistrictID.toString() === selectedDistrict)?.DistrictName}, {provinces.find(p => p.ProvinceID.toString() === selectedProvince)?.ProvinceName}
+                          </p>
+                          {note && <p className="mb-0 text-muted small fst-italic">Ghi chú: {note}</p>}
+                        </div>
+                      </div>
+                    </Col>
+                    
+                    <Col md={6}>
+                      <div className="info-card p-0">
+                        <h6 className="mb-3 border-bottom pb-2">
+                          <FaMoneyBillAlt className="me-2 text-muted" /> Phương thức thanh toán
+                        </h6>
+                        <div className="py-1">
+                          {paymentMethod === 'cod' && (
+                            <div className="d-flex align-items-center">
+                              <FaMoneyBillAlt className="me-2 text-success" />
+                              <span>Thanh toán khi nhận hàng (COD)</span>
+                            </div>
+                          )}
+                          {paymentMethod === 'momo' && (
+                            <div className="d-flex align-items-center">
+                              <FaQrcode className="me-2 text-danger" />
+                              <span>Thanh toán qua MoMo</span>
+                            </div>
+                          )}
+                          {paymentMethod === 'paypal' && (
+                            <div className="d-flex align-items-center">
+                              <FaPaypal className="me-2 text-primary" />
+                              <span>Thanh toán qua PayPal</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
+              
+              <Col md={4}>
+                <div className="order-summary">
+                  <h5 className="mb-3">Tổng đơn hàng</h5>
+                  <div className="order-summary-content p-3 border rounded bg-light">
+                    <div className="py-2 d-flex justify-content-between">
+                      <span>Tạm tính:</span>
+                      <span>{formatPrice(itemsPrice)}</span>
+                    </div>
+                    <div className="py-2 d-flex justify-content-between">
+                      <span>Phí vận chuyển:</span>
+                      <span>
+                        {selectedService ? (
+                          loadingServices ? (
+                            <Spinner animation="border" size="sm" />
+                          ) : (
+                            formatPrice(shippingFee)
+                          )
+                        ) : (
+                          '0 ₫'
+                        )}
+                      </span>
+                    </div>
+                    <div className="py-2 d-flex justify-content-between">
+                      <span>Thuế (VAT 10%):</span>
+                      <span>{formatPrice(taxPrice)}</span>
+                    </div>
+                    
+                    {discountAmount > 0 && (
+                      <div className="py-2 d-flex justify-content-between text-danger">
+                        <span>Giảm giá:</span>
+                        <span>-{formatPrice(discountAmount)}</span>
+                      </div>
+                    )}
+                    
+                    <hr className="my-2" />
+                    
+                    <div className="py-2 d-flex justify-content-between fw-bold">
+                      <span className="fs-5">Tổng thanh toán:</span>
+                      <span className="fs-5 text-primary">
+                        {selectedService ? formatPrice(calculateTotalPrice()) : formatPrice(totalPrice)}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="d-grid gap-2 mt-4">
+                    <Button type="button" className="btn-primary order-btn" size="lg" onClick={placeOrderHandler}>
+                      ĐẶT HÀNG
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline-secondary"
+                      onClick={() => setActiveAccordion('payment')}
+                    >
+                      QUAY LẠI
+                    </Button>
+                  </div>
                 </div>
               </Col>
             </Row>
@@ -1071,7 +1228,7 @@ const CartPage = () => {
           font-weight: 600;
           font-size: 14px;
         }
-        .summary-card, .order-summary-card {
+        .summary-card, .order-summary-card, .order-total-card {
           border: 0;
           box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
           border-radius: 0.5rem;
@@ -1082,19 +1239,19 @@ const CartPage = () => {
           font-size: 1.15rem;
           font-weight: 600;
         }
-        .cart-items-list, .order-items-list {
+        .cart-items-list, .order-items-list, .product-list {
           border-radius: 0.5rem;
         }
-        .cart-item-image {
+        .cart-item-image, .product-image-container img {
           max-height: 80px;
           object-fit: cover;
         }
-        .cart-item-name {
+        .cart-item-name, .product-name {
           font-weight: 500;
           color: #333;
           text-decoration: none;
         }
-        .cart-item-name:hover {
+        .cart-item-name:hover, .product-name:hover {
           color: #FF6B6B;
         }
         .cart-item-price {
@@ -1120,51 +1277,63 @@ const CartPage = () => {
         }
         .quantity-input:focus {
           box-shadow: none;
-          border-color: #dee2e6;
         }
+        /* Disable input number arrows for quantity field */
         .quantity-input::-webkit-outer-spin-button,
         .quantity-input::-webkit-inner-spin-button {
           -webkit-appearance: none;
           margin: 0;
         }
-        .remove-item-btn {
-          padding: 0.35rem 0.5rem;
-          border-color: #dee2e6;
+        .payment-radio {
+          cursor: pointer;
         }
-        .order-item-name {
-          font-size: 0.9rem;
-          font-weight: 500;
-        }
-        .accordion-button:not(.collapsed) {
-          background-color: #f8f9fa;
-          color: #333;
-          box-shadow: none;
-        }
-        .accordion-button:focus {
-          box-shadow: none;
-          border-color: #dee2e6;
-        }
-        .payment-option {
-          padding: 0.75rem;
+        .payment-method-options {
           border: 1px solid #dee2e6;
           border-radius: 0.5rem;
-          transition: all 0.2s;
+          padding: 1rem;
+          background-color: #fafafa;
         }
-        .payment-option:hover {
-          border-color: #ced4da;
+        .payment-option {
+          padding: 0.5rem 0;
         }
-        .payment-radio {
-          font-weight: 500;
-        }
-        .place-order-btn {
-          font-weight: 600;
-          padding: 0.75rem;
+        .proceed-checkout-btn {
           background-color: #FF6B6B;
           border-color: #FF6B6B;
+          padding: 0.75rem 1rem;
         }
-        .place-order-btn:hover {
-          background-color: #e05252;
-          border-color: #e05252;
+        .proceed-checkout-btn:hover {
+          background-color: #ff5252;
+          border-color: #ff5252;
+        }
+        .info-card {
+          background: #fff;
+          border-radius: 0.5rem;
+        }
+        .product-list .list-group-item:last-child {
+          border-bottom: none !important;
+        }
+        .order-total-card {
+          background: #f8f9fa;
+          border-radius: 0.5rem;
+        }
+        .order-summary h5 {
+          font-weight: 600;
+        }
+        .order-summary-content {
+          background: #f8f9fa;
+        }
+        .order-btn {
+          background-color: #FF6B6B;
+          border-color: #FF6B6B;
+          font-weight: 600;
+        }
+        .order-btn:hover {
+          background-color: #ff5252;
+          border-color: #ff5252;
+        }
+        .product-info .product-name {
+          display: block;
+          margin-bottom: 5px;
         }
       `}</style>
     </div>
