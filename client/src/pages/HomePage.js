@@ -98,8 +98,8 @@ const HomePage = () => {
         ) : (
           <Row>
             {products.slice(0, 8).map((product, index) => (
-              <Col key={product.id} sm={6} md={3} className="mb-4">
-                <div className={`fade-up delay-${index % 3 + 1}`}>
+              <Col key={product.id} sm={6} md={3} className="mb-6">
+                <div className={`fade-up delay-${index % 5 + 1}`}>
                 <ProductCard
                   product={product}
                   isFavorite={wishlistItems.includes(product.id)}

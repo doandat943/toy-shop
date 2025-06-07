@@ -280,7 +280,7 @@ const getPaymentStatus = async (req, res) => {
         data: {
           orderId: order.id,
           paymentMethod: order.paymentMethod,
-          isPaid: order.isPaid,
+          isPaid: true,
           paidAt: order.paidAt,
           stripeStatus: paymentIntent.status
         }
